@@ -319,14 +319,20 @@ closed with links to their children.
 
 ## Wave readiness
 
-- Every open issue carries a `difficulty/*` label mapping to wave points
-  (trivial 100 / medium 150 / high 200).
+- Every open issue carries a `difficulty/*` label (trivial / medium / high).
+  The point value itself (100 / 150 / 200) is assigned in the Drips Wave
+  maintainer dashboard when issues are added to a Program.
 - Issue bodies include assignment and PR conventions via
   `tools/wave_guidelines.py`; existing issues were backfilled with
   `tools/apply_wave_guidelines.py`.
-- Maintainer review commitments (48h response, 72h review decision) are
-  documented in [`docs/WAVE.md`](WAVE.md) and [`CONTRIBUTING.md`](../CONTRIBUTING.md).
-- `good-first-issue` items are available for new contributors.
+- Maintainer review commitments (48h response, 72h review decision), Wave
+  assignment/review flow, and rollover behavior are documented in
+  [`docs/WAVE.md`](WAVE.md) and [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+- `good-first-issue` items (5 open) are available for new contributors; 38 open
+  issues are labeled `soroban`.
+- **Not yet done (human step):** install the Drips Wave GitHub App on the
+  `AyinkxLab` org and apply this repository to the Stellar Wave Program. Approval
+  is decided by the program organizers. See `docs/WAVE.md` for the checklist.
 
 ## Next task
 
