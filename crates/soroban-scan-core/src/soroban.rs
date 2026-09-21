@@ -15,11 +15,13 @@ use crate::model::{Manifest, ProjectKind, SorobanInfo};
 pub const SOROBAN_SDK: &str = "soroban-sdk";
 
 /// Returns true if `name` looks like a Soroban-related crate.
+///
+/// Only Soroban crates count. Classic Stellar crates (for example
+/// `stellar-strkey` or `stellar-xdr`) are host-side tooling and do not, by
+/// themselves, make a project a Soroban contract project.
 pub fn is_soroban_dependency(name: &str) -> bool {
     let normalized = name.replace('_', "-");
-    normalized == SOROBAN_SDK
-        || normalized.starts_with("soroban-")
-        || normalized.starts_with("stellar-")
+    normalized == SOROBAN_SDK || normalized.starts_with("soroban-")
 }
 
 /// Strength of a Soroban attribute found in source.
@@ -144,5 +146,7 @@ mod tests {
         assert!(is_soroban_dependency("soroban_token_sdk"));
         assert!(is_soroban_dependency("soroban-token-sdk"));
         assert!(!is_soroban_dependency("serde"));
+        assert!(!is_soroban_dependency("stellar-strkey"));
+        assert!(!is_soroban_dependency("stellar-xdr"));
     }
 }
