@@ -16,6 +16,8 @@ from pathlib import Path
 
 from wave_guidelines import MARKER, render_guidelines
 
+PLACEHOLDER = "`Closes #` followed by this issue's number"
+
 
 def run(args: list[str]) -> subprocess.CompletedProcess:
     return subprocess.run(args, capture_output=True, text=True, encoding="utf-8")
@@ -45,11 +47,16 @@ def main() -> int:
         return 1
 
     issues = json.loads(result.stdout or "[]")
-    missing = [i for i in issues if MARKER not in (i.get("body") or "")]
+
+    def needs_update(issue: dict) -> bool:
+        body = issue.get("body") or ""
+        return MARKER not in body or PLACEHOLDER in body
+
+    missing = [i for i in issues if needs_update(i)]
     if args.limit:
         missing = missing[: args.limit]
 
-    print(f"Open issues: {len(issues)}. Missing guidelines: {len(missing)}.")
+    print(f"Open issues: {len(issues)}. Needing guidelines update: {len(missing)}.")
     if not args.apply:
         for issue in missing:
             print(f"[dry-run] #{issue['number']} {issue['title']}")
@@ -58,9 +65,13 @@ def main() -> int:
 
     updated = 0
     for issue in missing:
-        body = (issue.get("body") or "").rstrip() + "\n\n" + render_guidelines(
-            issue["title"], issue["number"]
-        )
+        body = issue.get("body") or ""
+        if MARKER not in body:
+            body = body.rstrip() + "\n\n" + render_guidelines(
+                issue["title"], issue["number"]
+            )
+        else:
+            body = body.replace(PLACEHOLDER, f"`Closes #{issue['number']}`")
         with tempfile.NamedTemporaryFile(
             "w", suffix=".md", delete=False, encoding="utf-8"
         ) as handle:
