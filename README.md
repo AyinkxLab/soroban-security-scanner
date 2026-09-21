@@ -47,6 +47,9 @@ deterministic rule engine, and CI-friendly machine-readable output (JSON, SARIF)
 - Composite GitHub Action and changed-file pull-request scanning.
 - Optional, clearly labeled assistance (`--guidance`); off by default and never
   authoritative.
+- A compilable example suite: clean and intentionally vulnerable Soroban
+  contracts (token, escrow, vault) plus a classic Stellar address example,
+  built in CI.
 
 ## Non-goals
 

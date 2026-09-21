@@ -35,11 +35,15 @@ jobs:
       - name: Build scanner
         run: cargo build --release -p soroban-scan-cli
 
-      - name: Gate on the clean example
+      - name: Gate on the clean examples
         run: |
-          ./target/release/soroban-scan scan examples/clean-contract \
-            --fail-on high \
-            --format terminal
+          for example in clean-contract token escrow vault stellar-classic; do
+            echo "::group::scan examples/${example}"
+            ./target/release/soroban-scan scan "examples/${example}" \
+              --fail-on high \
+              --format terminal
+            echo "::endgroup::"
+          done
 
       - name: Produce SARIF for the vulnerable example
         run: |

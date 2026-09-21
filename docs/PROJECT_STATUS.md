@@ -261,6 +261,27 @@ Release throughput on a developer machine: ~2,500-2,800 entry points/s
 
 - [ADR-0001: Rust core with Python supporting tooling](architecture/adr/0001-rust-core-python-tooling.md)
 
+## Examples
+
+A real, compilable example suite lives under [`examples/`](../examples/README.md).
+Each example is a standalone crate targeting `soroban-sdk` 28, excluded from the
+workspace, and built in CI (`examples.yml`).
+
+| Example | Kind | Scanner result |
+| ------- | ---- | -------------- |
+| `clean-contract` | Soroban vault | 0 findings |
+| `token` | Soroban fungible token | 0 findings |
+| `escrow` | Soroban escrow | 0 findings |
+| `vault` | Soroban pausable vault | 0 findings |
+| `stellar-classic` | Classic Stellar address tooling | 0 findings (generic Rust) |
+| `vulnerable-contract` | Intentionally vulnerable | SS-001, SS-002, SS-004, SS-006, SS-007 |
+
+Compilation was verified locally with `cargo check`/`cargo test` for all six
+examples, and compilation is enforced in CI on changes to `examples/**`. The
+`Security Scan` workflow gates the clean examples with `--fail-on high` and
+uploads SARIF for the vulnerable example. As a result, classic Stellar tooling
+(for example `stellar-strkey`) is no longer classified as Soroban.
+
 ## Contributor backlog
 
 An expanded backlog of **170 open issues** is tracked on GitHub. It is authored

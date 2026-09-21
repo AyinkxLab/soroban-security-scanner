@@ -1,7 +1,12 @@
 # Rust
-/target/
+target/
 **/*.rs.bk
 Cargo.lock.orig
+
+# Standalone example crates are excluded from the workspace; ignore their
+# generated lockfiles and build output.
+examples/*/Cargo.lock
+examples/*/target/
 
 # Build artifacts
 /dist/

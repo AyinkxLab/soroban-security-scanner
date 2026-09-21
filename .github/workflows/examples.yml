@@ -1,0 +1,47 @@
+name: Examples
+
+on:
+  pull_request:
+    paths:
+      - "examples/**"
+      - ".github/workflows/examples.yml"
+  push:
+    branches: [main]
+    paths:
+      - "examples/**"
+      - ".github/workflows/examples.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: examples-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build ${{ matrix.example }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        example:
+          - clean-contract
+          - vulnerable-contract
+          - token
+          - escrow
+          - vault
+          - stellar-classic
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: examples/${{ matrix.example }}
+          shared-key: example-${{ matrix.example }}
+      - name: Check and test
+        run: cargo test --manifest-path examples/${{ matrix.example }}/Cargo.toml

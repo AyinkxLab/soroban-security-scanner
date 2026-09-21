@@ -4,5 +4,7 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
+[workspace]
+
 [dependencies]
-soroban-sdk = "21.0.0"
+soroban-sdk = "28.0.0"
