@@ -93,6 +93,40 @@ soroban-scan config validate
 See [`docs/cli.md`](docs/cli.md) for the full reference, including configuration
 and stable exit codes.
 
+## Demo
+
+Scanning the intentionally vulnerable example (real output):
+
+```console
+$ soroban-scan scan examples/vulnerable-contract --fail-on none --quiet
+high SS-001 src/lib.rs:23:9
+low SS-006 src/lib.rs:23:9
+low SS-004 src/lib.rs:30:9
+medium SS-007 src/lib.rs:40:13
+high SS-002 src/lib.rs:46:22
+5 finding(s) — critical: 0, high: 2, medium: 1, low: 2, info: 0
+```
+
+Machine-readable output for CI and code scanning:
+
+```bash
+soroban-scan scan . --format json    --output report.json
+soroban-scan scan . --format sarif   --output results.sarif
+soroban-scan scan . --format markdown --output report.md
+```
+
+Explore what a finding means:
+
+```console
+$ soroban-scan explain SS-001
+SS-001 — State-changing entry point without caller authorization
+
+Severity:   high
+Confidence: medium
+Category:   authorization
+...
+```
+
 ## Architecture
 
 ```
@@ -123,7 +157,9 @@ scanned code, and makes no network requests by default. See
 - [GitHub Integration](docs/github-integration.md)
 - [Security Model](docs/security/security-model.md) · [Threat Model](docs/security/threat-model.md)
 - [Architecture](docs/architecture/overview.md) · [Project Status](docs/PROJECT_STATUS.md)
+- [Roadmap](docs/ROADMAP.md) · [Issue Backlog](docs/ISSUE_BACKLOG.md) · [Wave Board](docs/WAVE_BOARD.md)
 - [Troubleshooting](docs/troubleshooting.md)
+- [Contributors](CONTRIBUTORS.md)
 
 ## Contributing
 

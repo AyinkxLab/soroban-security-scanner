@@ -37,6 +37,8 @@ Start here.
 - [Threat Model](security/threat-model.md)
 - [Project Status](PROJECT_STATUS.md)
 - [Issue Backlog](ISSUE_BACKLOG.md)
+- [Roadmap](ROADMAP.md)
+- [Wave Board](WAVE_BOARD.md)
 
 ## Maintainers
 

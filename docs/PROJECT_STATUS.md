@@ -328,8 +328,15 @@ closed with links to their children.
 - Maintainer review commitments (48h response, 72h review decision), Wave
   assignment/review flow, and rollover behavior are documented in
   [`docs/WAVE.md`](WAVE.md) and [`CONTRIBUTING.md`](../CONTRIBUTING.md).
-- `good-first-issue` items (5 open) are available for new contributors; 38 open
+- `good-first-issue` items (12 open) are available for new contributors; 38 open
   issues are labeled `soroban`.
+- A curated first-Wave set with a bounded budget (20 issues, 2,650 points) is in
+  [`docs/WAVE_BOARD.md`](WAVE_BOARD.md).
+- Repository topics are set for discoverability (stellar, soroban, security,
+  sarif, static-analysis, rust, smart-contracts, cli, and more).
+- [`CONTRIBUTORS.md`](../CONTRIBUTORS.md) and a public [`ROADMAP.md`](ROADMAP.md)
+  are available.
+- **Traction (honest):** 1 external contributor and 1 merged external PR so far.
 - **Not yet done (human step):** install the Drips Wave GitHub App on the
   `AyinkxLab` org and apply this repository to the Stellar Wave Program. Approval
   is decided by the program organizers. See `docs/WAVE.md` for the checklist.
