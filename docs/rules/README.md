@@ -92,9 +92,11 @@ Then:
 Rules must never fabricate evidence or source locations. When evidence is
 insufficient, prefer `confidence: low` or do not report at all.
 
-See [`docs/development/testing.md`](../development/testing.md) for the fixture
-layout and [`../../CONTRIBUTING.md`](../../CONTRIBUTING.md) for the definition of
-done.
+See [`../contributors/writing-rules.md`](../contributors/writing-rules.md) for a
+step-by-step guide, [`TEMPLATE.md`](TEMPLATE.md) for the rule document template,
+[`docs/development/testing.md`](../development/testing.md) for the fixture
+layout, and [`../../CONTRIBUTING.md`](../../CONTRIBUTING.md) for the definition
+of done.
 
 ## Rule documentation template
 

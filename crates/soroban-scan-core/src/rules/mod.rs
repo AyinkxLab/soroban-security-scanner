@@ -7,6 +7,7 @@
 //! Detector documentation lives in `docs/rules/detectors/`.
 
 pub mod util;
+pub mod validation;
 
 mod cross_contract_auth;
 mod hardcoded_address;

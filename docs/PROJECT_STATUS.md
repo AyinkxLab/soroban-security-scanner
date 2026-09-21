@@ -10,7 +10,7 @@ without ambiguity.
 
 **Default branch:** `main`
 
-**Current phase:** Phase 5 — Rule Quality and Research Infrastructure
+**Current phase:** Phase 6 — CLI and Reporting
 
 ---
 
@@ -22,8 +22,8 @@ without ambiguity.
 | 2 | Source Parsing and Project Intelligence | Complete |
 | 3 | Security Analysis Engine | Complete |
 | 4 | Initial Soroban Security Detectors | Complete |
-| 5 | Rule Quality and Research Infrastructure | In progress |
-| 6 | CLI and Reporting | Not started |
+| 5 | Rule Quality and Research Infrastructure | Complete |
+| 6 | CLI and Reporting | In progress |
 | 7 | Baselines, Incremental Scanning and CI | Not started |
 | 8 | GitHub and Developer Integrations | Not started |
 | 9 | Developer Experience | Not started |
@@ -104,6 +104,26 @@ Supporting work:
       integration test over all rule ids.
 - [x] Adversarial test: malformed source produces diagnostics, not panics.
 
+### Phase 5 — Rule Quality and Research Infrastructure (complete)
+
+- [x] Rule metadata validation (`rules::validation`): id shape, description
+      length, remediation, references, and rejection of `critical` + `high`
+      combinations for heuristics.
+- [x] Registry validation and documentation validation (every rule must have
+      `docs/rules/detectors/<ID>.md`).
+- [x] Rule-quality integration tests: metadata validity, docs presence, corpus
+      presence, per-rule selection isolation, deterministic metadata.
+- [x] Adversarial test suite: empty/whitespace/comment-only sources, deep
+      nesting, very long lines, unicode identifiers, 2,000 entry points, and
+      repeated-scan byte-identity.
+- [x] **Security hardening:** added a pre-parse delimiter-nesting guard after
+      discovering that deeply nested input could overflow the parser stack
+      (a denial-of-service risk on untrusted input).
+- [x] Dependency-free benchmark example with documented methodology and
+      baseline (`docs/development/benchmarks.md`).
+- [x] Rule template (`docs/rules/TEMPLATE.md`) and contributor guide
+      (`docs/contributors/writing-rules.md`).
+
 ---
 
 ## Verified environment
@@ -115,9 +135,14 @@ Supporting work:
 
 ## Test summary
 
-- Unit tests: 83
-- Corpus / integration tests: 7
-- Total: 90 (all passing)
+- Unit tests: 91
+- Integration tests: 18 (corpus, rule quality, adversarial, project detection)
+- Total: 109 (all passing)
+
+## Performance
+
+Release throughput on a developer machine: ~2,500-2,800 entry points/s
+(~700 KB/s of source). See `docs/development/benchmarks.md`.
 
 ## Known limitations
 
@@ -131,5 +156,5 @@ Supporting work:
 
 ## Next task
 
-Phase 5: rule metadata validation, documentation validation, a regression runner,
-benchmark fixtures, determinism tests, and a contributor template for new rules.
+Phase 6: production CLI (`scan`, `rules`, `explain`, `version`, `config`, `init`),
+terminal/JSON/SARIF/Markdown reporting, and documented exit codes.

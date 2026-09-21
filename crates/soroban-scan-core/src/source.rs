@@ -563,9 +563,161 @@ pub fn module_path_for(path: &Path, crate_root: &Path) -> String {
     }
 }
 
+/// Maximum delimiter nesting depth accepted before parsing is skipped.
+///
+/// Recursive-descent parsers can overflow the stack on pathologically nested
+/// input. Since scanned repositories are untrusted, we reject deeply nested
+/// sources before handing them to the parser.
+pub const MAX_NESTING_DEPTH: usize = 192;
+
+fn skip_string(bytes: &[u8], mut i: usize) -> usize {
+    let n = bytes.len();
+    while i < n {
+        match bytes[i] {
+            b'\\' => i += 2,
+            b'"' => return i + 1,
+            _ => i += 1,
+        }
+    }
+    n
+}
+
+fn skip_char_literal(bytes: &[u8], i: usize) -> usize {
+    let n = bytes.len();
+    if i >= n {
+        return i;
+    }
+    if bytes[i] == b'\\' {
+        let mut j = i + 1;
+        if j < n && bytes[j] == b'u' {
+            j += 1;
+            if j < n && bytes[j] == b'{' {
+                while j < n && bytes[j] != b'}' {
+                    j += 1;
+                }
+                if j < n {
+                    j += 1;
+                }
+            }
+        } else {
+            j += 1;
+        }
+        return if j < n && bytes[j] == b'\'' { j + 1 } else { j };
+    }
+    // `'x'` is a char literal; `'x` is a lifetime.
+    if i + 1 < n && bytes[i + 1] == b'\'' {
+        return i + 2;
+    }
+    i
+}
+
+/// Computes the maximum delimiter nesting depth, ignoring strings and comments.
+pub fn max_delimiter_depth(src: &str) -> usize {
+    let bytes = src.as_bytes();
+    let n = bytes.len();
+    let mut i = 0usize;
+    let mut depth = 0usize;
+    let mut max_depth = 0usize;
+
+    while i < n {
+        match bytes[i] {
+            b'/' if i + 1 < n && bytes[i + 1] == b'/' => {
+                i += 2;
+                while i < n && bytes[i] != b'\n' {
+                    i += 1;
+                }
+            }
+            b'/' if i + 1 < n && bytes[i + 1] == b'*' => {
+                i += 2;
+                let mut level = 1usize;
+                while i < n && level > 0 {
+                    if i + 1 < n && bytes[i] == b'/' && bytes[i + 1] == b'*' {
+                        level += 1;
+                        i += 2;
+                    } else if i + 1 < n && bytes[i] == b'*' && bytes[i + 1] == b'/' {
+                        level -= 1;
+                        i += 2;
+                    } else {
+                        i += 1;
+                    }
+                }
+            }
+            b'"' => i = skip_string(bytes, i + 1),
+            b'\'' => i = skip_char_literal(bytes, i + 1),
+            b'r' | b'b' => {
+                let mut j = i;
+                if bytes[j] == b'b' {
+                    j += 1;
+                    if j >= n || bytes[j] != b'r' {
+                        i += 1;
+                        continue;
+                    }
+                }
+                j += 1;
+                let mut hashes = 0;
+                while j < n && bytes[j] == b'#' {
+                    hashes += 1;
+                    j += 1;
+                }
+                if j < n && bytes[j] == b'"' {
+                    j += 1;
+                    loop {
+                        if j >= n {
+                            break;
+                        }
+                        if bytes[j] == b'"' {
+                            let mut k = j + 1;
+                            let mut h = 0;
+                            while h < hashes && k < n && bytes[k] == b'#' {
+                                h += 1;
+                                k += 1;
+                            }
+                            if h == hashes {
+                                j = k;
+                                break;
+                            }
+                        }
+                        j += 1;
+                    }
+                    i = j;
+                } else {
+                    i += 1;
+                }
+            }
+            b'(' | b'[' | b'{' => {
+                depth += 1;
+                max_depth = max_depth.max(depth);
+                i += 1;
+            }
+            b')' | b']' | b'}' => {
+                depth = depth.saturating_sub(1);
+                i += 1;
+            }
+            _ => i += 1,
+        }
+    }
+
+    max_depth
+}
+
 /// Parses a single source file's content.
 pub fn parse_source(path: &Path, crate_root: &Path, content: &str) -> ParsedSource {
     let module_path = module_path_for(path, crate_root);
+
+    if max_delimiter_depth(content) > MAX_NESTING_DEPTH {
+        return ParsedSource {
+            path: path.to_path_buf(),
+            module_path,
+            syntax: None,
+            parse_error: Some(format!(
+                "source nesting exceeds the {MAX_NESTING_DEPTH}-level safety limit"
+            )),
+            items: Vec::new(),
+            functions: Vec::new(),
+            contract_definitions: Vec::new(),
+        };
+    }
+
     match syn::parse_file(content) {
         Ok(file) => {
             let mut items = Vec::new();
@@ -799,5 +951,29 @@ impl C {
         let s = parse(src);
         let info = soroban_evidence(&[s]);
         assert!(info.contract_macros_found);
+    }
+
+    #[test]
+    fn measures_delimiter_depth() {
+        assert_eq!(max_delimiter_depth("fn f() { (()) }"), 3);
+        assert_eq!(max_delimiter_depth("fn f() {}"), 1);
+    }
+
+    #[test]
+    fn ignores_delimiters_in_strings_and_comments() {
+        assert_eq!(max_delimiter_depth("let s = \"((((((\";"), 0);
+        assert_eq!(max_delimiter_depth("// ((((((\n"), 0);
+        assert_eq!(max_delimiter_depth("/* (((((( */"), 0);
+        assert_eq!(max_delimiter_depth("let r = r#\"(((((\"#;"), 0);
+        assert_eq!(max_delimiter_depth("let c = '(';"), 0);
+    }
+
+    #[test]
+    fn rejects_pathologically_nested_source() {
+        let depth = MAX_NESTING_DEPTH + 50;
+        let src = format!("fn f() {{ {}0{} }}", "(".repeat(depth), ")".repeat(depth));
+        let parsed = parse(&src);
+        assert!(parsed.parse_error.is_some());
+        assert!(!parsed.is_parsed());
     }
 }
