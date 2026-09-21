@@ -10,7 +10,7 @@ without ambiguity.
 
 **Default branch:** `main`
 
-**Current phase:** Phase 1 — Foundation and Architecture (in progress)
+**Current phase:** Phase 3 — Security Analysis Engine
 
 ---
 
@@ -18,9 +18,9 @@ without ambiguity.
 
 | Phase | Title | Status |
 | ----- | ----- | ------ |
-| 1 | Foundation and Architecture | In progress |
-| 2 | Source Parsing and Project Intelligence | Not started |
-| 3 | Security Analysis Engine | Not started |
+| 1 | Foundation and Architecture | Complete |
+| 2 | Source Parsing and Project Intelligence | Complete |
+| 3 | Security Analysis Engine | In progress |
 | 4 | Initial Soroban Security Detectors | Not started |
 | 5 | Rule Quality and Research Infrastructure | Not started |
 | 6 | CLI and Reporting | Not started |
@@ -34,18 +34,34 @@ without ambiguity.
 
 ## Completed tasks
 
-### Phase 1 (partial)
+### Phase 1 — Foundation (complete)
 
-- [x] Created repository `AyinkxLab/soroban-security-scanner` under the org.
-- [x] Cargo workspace with `soroban-scan-core` and `soroban-scan-cli`.
-- [x] Core `ScanError` type and version helpers (with unit tests).
+- [x] Repository created under `AyinkxLab`.
+- [x] Cargo workspace: `soroban-scan-core` (lib), `soroban-scan-cli` (bin).
+- [x] Core `ScanError` type and version helpers.
 - [x] CLI bootstrap exposing `soroban-scan version`.
-- [x] `.gitignore`, `.gitattributes`, `.editorconfig`, `rustfmt.toml`, `clippy.toml`.
-- [x] `README.md`, `LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`,
-      `SECURITY.md`, `CHANGELOG.md`.
-- [x] Architecture docs and ADR-0001.
-- [x] Security model and threat model docs.
-- [x] CI workflow and GitHub templates.
+- [x] Governance docs: README, LICENSE, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY,
+      CHANGELOG.
+- [x] Architecture overview and ADR-0001.
+- [x] Security model and threat model.
+- [x] Rule documentation and contributor roadmap.
+- [x] CI workflow, issue templates, PR template, pre-commit, cargo-deny.
+
+### Phase 2 — Source Parsing and Project Intelligence (complete)
+
+- [x] Serializable project metadata model (`Project`, `Manifest`, `Dependency`,
+      `Diagnostic`, `ProjectKind`).
+- [x] Deterministic filesystem discovery with symlink safety and exclude globs.
+- [x] `Cargo.toml` parsing (package, workspace, dependencies, workspace and
+      target-specific dependencies).
+- [x] Evidence-based Soroban classification: `generic_rust`, `likely_soroban`,
+      `confirmed_soroban`.
+- [x] `syn`-based source parsing with span locations, function/impl/trait/item
+      inventory, module paths, and contract entry-point detection.
+- [x] Graceful degradation: malformed manifests and unparseable sources become
+      diagnostics, not crashes.
+- [x] Fixtures: `generic-rust`, `soroban-likely`, `soroban-confirmed`.
+- [x] Integration test asserting deterministic metadata output.
 
 ---
 
@@ -54,12 +70,19 @@ without ambiguity.
 - OS: Windows (win32), shell PowerShell 5.1.
 - Rust: 1.97.1, toolchain `stable-x86_64-pc-windows-gnu` (local directory override).
 - crates.io reachable.
-- `cargo build`, `cargo test`, `cargo fmt --check`, `cargo clippy -D warnings` all pass.
+- `cargo build`, `cargo test`, `cargo fmt --check`, `cargo clippy -D warnings` pass.
+
+## Test summary
+
+- Unit tests: 33
+- Integration tests: 4
+- Total: 37 (all passing)
 
 ## Known limitations
 
-- No functional scanning yet; only the foundation exists.
+- No security rules or finding output yet.
 - The CLI exposes only `version`.
+- Source parsing is purely syntactic (no type resolution).
 
 ## Architecture decisions
 
@@ -67,5 +90,5 @@ without ambiguity.
 
 ## Next task
 
-Continue Phase 1: finish development docs and tooling configuration, then begin
-Phase 2 (source parsing and Soroban project intelligence).
+Phase 3: implement the finding model, rule trait, rule registry, analysis
+context, scanner pipeline, and diagnostics.

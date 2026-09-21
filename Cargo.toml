@@ -25,6 +25,7 @@ toml = "0.8"
 # Rust source parsing (deterministic, no code execution)
 syn = { version = "2", features = ["full", "visit", "extra-traits"] }
 proc-macro2 = { version = "1", features = ["span-locations"] }
+quote = "1"
 
 # Errors
 thiserror = "1"

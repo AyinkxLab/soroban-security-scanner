@@ -1,4 +1,4 @@
-//! Project loading: discovery plus manifest intelligence.
+//! Project loading: discovery, manifest intelligence, and source parsing.
 
 use std::path::Path;
 
@@ -7,13 +7,22 @@ use crate::error::ScanError;
 use crate::manifest;
 use crate::model::{Diagnostic, Project};
 use crate::soroban;
+use crate::source::{self, ParsedSource};
 
-/// Loads project metadata from a root directory.
+/// A fully loaded project: metadata plus parsed sources.
+pub struct LoadedProject {
+    /// Project metadata.
+    pub project: Project,
+    /// Parsed Rust source files.
+    pub sources: Vec<ParsedSource>,
+}
+
+/// Loads a project, including parsed sources and Soroban evidence.
 ///
-/// Malformed manifests are reported as diagnostics rather than aborting the
-/// scan, so that one bad file does not hide an entire project. The root's own
-/// manifest, if present and unreadable, is an error.
-pub fn load_project(root: &Path, opts: &DiscoveryOptions) -> Result<Project, ScanError> {
+/// Malformed nested manifests and unparseable source files are reported as
+/// diagnostics rather than aborting the scan. The root manifest, if present and
+/// unreadable, is an error.
+pub fn load(root: &Path, opts: &DiscoveryOptions) -> Result<LoadedProject, ScanError> {
     let discovered = discovery::discover(root, opts)?;
     let mut manifests = Vec::new();
     let mut diagnostics = Vec::new();
@@ -34,17 +43,27 @@ pub fn load_project(root: &Path, opts: &DiscoveryOptions) -> Result<Project, Sca
         }
     }
 
-    let soroban = soroban::analyze_manifests(&manifests);
-    let kind = soroban::classify(&soroban);
+    let (sources, source_diagnostics) =
+        source::load_sources(&discovered.rust_files, &manifests, root);
+    diagnostics.extend(source_diagnostics);
 
-    Ok(Project {
+    let soroban = soroban::analyze_manifests(&manifests);
+    let mut project = Project {
         root: root.to_path_buf(),
-        kind,
+        kind: soroban::classify(&soroban),
         manifests,
         soroban,
         source_files: discovered.rust_files.len(),
         diagnostics,
-    })
+    };
+    source::apply_source_evidence(&mut project, &sources);
+
+    Ok(LoadedProject { project, sources })
+}
+
+/// Loads only project metadata (no parsed sources).
+pub fn load_project(root: &Path, opts: &DiscoveryOptions) -> Result<Project, ScanError> {
+    load(root, opts).map(|loaded| loaded.project)
 }
 
 #[cfg(test)]
@@ -87,6 +106,24 @@ mod tests {
     }
 
     #[test]
+    fn confirms_soroban_from_contract_macro() {
+        let root = tmpdir("confirmed");
+        write(
+            &root.join("Cargo.toml"),
+            "[package]\nname = \"c\"\nversion = \"0.1.0\"\n[dependencies]\nsoroban-sdk = \"21.0.0\"\n",
+        );
+        write(
+            &root.join("src/lib.rs"),
+            "#[contractimpl]\nimpl C { pub fn f() {} }\n",
+        );
+        let loaded = load(&root, &DiscoveryOptions::default()).unwrap();
+        assert_eq!(loaded.project.kind, ProjectKind::ConfirmedSoroban);
+        assert!(loaded.project.soroban.contract_macros_found);
+        assert_eq!(loaded.sources.len(), 1);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
     fn classifies_generic_rust_project() {
         let root = tmpdir("generic");
         write(
@@ -117,6 +154,25 @@ mod tests {
         let project = load_project(&root, &DiscoveryOptions::default()).unwrap();
         assert_eq!(project.manifests.len(), 1);
         assert_eq!(project.diagnostics.len(), 1);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn unparseable_source_is_diagnostic() {
+        let root = tmpdir("badsource");
+        write(
+            &root.join("Cargo.toml"),
+            "[package]\nname = \"b\"\nversion = \"0.1.0\"\n",
+        );
+        write(&root.join("src/lib.rs"), "fn broken( {");
+        let loaded = load(&root, &DiscoveryOptions::default()).unwrap();
+        assert_eq!(loaded.sources.len(), 1);
+        assert!(loaded.sources[0].parse_error.is_some());
+        assert!(loaded
+            .project
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("failed to parse")));
         let _ = std::fs::remove_dir_all(&root);
     }
 }

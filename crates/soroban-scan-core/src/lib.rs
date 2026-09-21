@@ -22,6 +22,7 @@ pub mod manifest;
 pub mod model;
 pub mod project;
 pub mod soroban;
+pub mod source;
 
 /// Crate version, sourced from Cargo at compile time.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
