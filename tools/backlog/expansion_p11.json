@@ -1,0 +1,62 @@
+[
+  {
+    "title": "chore(github): add a security regression issue template",
+    "phase": "phase-11",
+    "labels": ["security", "github", "documentation", "phase-11", "difficulty/trivial"],
+    "problem": "There is no template for reporting a missed detection or a new false positive, so reports lack the details needed to add a fixture.",
+    "why": "A structured template speeds the regression-test loop and improves rule quality.",
+    "scope": ["Add an issue template capturing rule id, minimal source, expected and actual behavior, and SDK version."],
+    "guidance": ["Reference the security policy for confidential reports."],
+    "acceptance": ["Template merged and listed in the issue chooser"],
+    "tests": ["Manual check of the template form"],
+    "security": "Directs vulnerabilities to private reporting rather than public issues.",
+    "deps": "None.",
+    "complexity": "trivial",
+    "dod": "Merged."
+  },
+  {
+    "title": "ci(release): automate release notes from the changelog",
+    "phase": "phase-11",
+    "labels": ["ci", "documentation", "phase-11", "difficulty/medium"],
+    "problem": "Release notes are written by hand, which risks drift from the changelog.",
+    "why": "Automation keeps the release page and changelog consistent.",
+    "scope": ["Extract the section for a tag from `CHANGELOG.md` and use it as the release body."],
+    "guidance": ["Fail the release if no matching section exists."],
+    "acceptance": ["Release workflow uses the changelog section", "Documented in the release guide"],
+    "tests": ["Dry-run on a pre-release tag"],
+    "security": "None.",
+    "deps": "Release process documentation.",
+    "complexity": "medium",
+    "dod": "Merged and verified."
+  },
+  {
+    "title": "ci(release): build and test on aarch64 Linux",
+    "phase": "phase-11",
+    "labels": ["ci", "release", "phase-11", "difficulty/medium"],
+    "problem": "CI covers x86_64 only, so ARM users and Apple-silicon container users are untested.",
+    "why": "ARM is increasingly common for development and cloud.",
+    "scope": ["Add an aarch64 Linux build-and-test job (native or via cross)."],
+    "guidance": ["Reuse the existing test command; document any platform-specific skips."],
+    "acceptance": ["aarch64 job green", "Compatibility matrix updated"],
+    "tests": ["The job itself"],
+    "security": "None.",
+    "deps": "Compatibility matrix.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "feat(observability): add structured logging with a log level",
+    "phase": "phase-11",
+    "labels": ["developer-experience", "cli", "phase-11", "difficulty/medium"],
+    "problem": "Debugging a scan requires re-running with ad hoc prints because there is no leveled logging.",
+    "why": "Structured, leveled logs on stderr improve supportability without touching machine output.",
+    "scope": ["Add `--log-level` emitting structured lines to stderr, disabled by default."],
+    "guidance": ["Keep stdout reserved for reports; never log secrets or absolute home paths."],
+    "acceptance": ["Log level documented and tested", "No change to default output"],
+    "tests": ["CLI test asserting stderr logging and clean stdout"],
+    "security": "Never log scanned source content or environment variables.",
+    "deps": "None.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  }
+]

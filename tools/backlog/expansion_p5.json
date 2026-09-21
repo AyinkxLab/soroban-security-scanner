@@ -1,0 +1,113 @@
+[
+  {
+    "title": "feat(rules): add a corpus manifest with an expected-findings schema",
+    "phase": "phase-5",
+    "labels": ["testing", "phase-5", "difficulty/medium"],
+    "problem": "Corpus expectations are implicit (a `positive.rs` must trigger, a `negative.rs` must not), which cannot express counts, severities, or multi-rule files.",
+    "why": "An explicit schema makes regression intent reviewable and enables stronger assertions.",
+    "scope": [
+      "Add an `expected.json` per corpus rule directory listing expected rule ids, counts, and severities.",
+      "Validate the manifest in the corpus test and fail on mismatch."
+    ],
+    "guidance": ["Keep the schema small and documented; support optional fields for forward compatibility."],
+    "acceptance": ["Every rule has a valid manifest", "Corpus test uses manifests"],
+    "tests": ["Corpus test", "Manifest schema validation test"],
+    "security": "None.",
+    "deps": "None.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "test(rules): add false-negative coverage for every detector",
+    "phase": "phase-5",
+    "labels": ["testing", "security", "phase-5", "difficulty/medium"],
+    "problem": "The corpus verifies positives trigger, but there is no curated set of known-vulnerable samples that must never be missed.",
+    "why": "Tracking recall prevents silent regressions where a refactor stops detecting a real pattern.",
+    "scope": ["Add a `must-trigger` fixture per detector based on the original vulnerability rationale."],
+    "guidance": ["Document why each sample is a true positive."],
+    "acceptance": ["Every detector has at least one must-trigger sample", "Test enforces it"],
+    "tests": ["Corpus test extension"],
+    "security": "Directly guards detection capability.",
+    "deps": "Corpus manifest.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "feat(tooling): add a rule scaffold generator",
+    "phase": "phase-5",
+    "labels": ["developer-experience", "phase-5", "difficulty/medium"],
+    "problem": "Adding a rule requires manually creating a module, metadata, fixtures, docs, and registration lines.",
+    "why": "A generator lowers the barrier and enforces the checklist, improving rule consistency.",
+    "scope": ["Generate a rule module, corpus directories, a docs stub, and the registration line from an id and title."],
+    "guidance": ["Make it idempotent and refuse to overwrite existing files."],
+    "acceptance": ["Generated rule compiles and passes validation after editing placeholders"],
+    "tests": ["Unit test of the generator in a temporary directory"],
+    "security": "Generator must not create files outside the repository.",
+    "deps": "xtask crate.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "feat(tooling): add a corpus coverage report",
+    "phase": "phase-5",
+    "labels": ["testing", "developer-experience", "phase-5", "difficulty/medium"],
+    "problem": "There is no quick way to see which rules lack negatives, must-trigger samples, or documentation.",
+    "why": "Visibility into corpus gaps drives contributions where they matter.",
+    "scope": ["Add a report listing per-rule fixture counts, docs presence, and validation status."],
+    "guidance": ["Support terminal and markdown output; keep it read-only."],
+    "acceptance": ["Report generated in CI or on demand", "Documented in the testing guide"],
+    "tests": ["Unit test on the current corpus"],
+    "security": "None.",
+    "deps": "Corpus manifest.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "test(rules): snapshot expected finding counts to detect regressions",
+    "phase": "phase-5",
+    "labels": ["testing", "phase-5", "difficulty/medium"],
+    "problem": "A refactor that changes how many findings the corpus produces can go unnoticed if the corpus only checks non-empty results.",
+    "why": "Exact-count snapshots catch accidental broadened or narrowed matching.",
+    "scope": ["Record per-rule finding counts for the corpus and compare on every test run."],
+    "guidance": ["Update the snapshot deliberately in the PR that changes behavior, with justification."],
+    "acceptance": ["Snapshot committed and enforced", "Update procedure documented"],
+    "tests": ["Snapshot test"],
+    "security": "Changes to counts must be reviewed as detection changes.",
+    "deps": "Corpus manifest.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "feat(rules): add a rule deprecation process and mechanism",
+    "phase": "phase-5",
+    "labels": ["developer-experience", "phase-5", "difficulty/medium"],
+    "problem": "There is no way to retire a rule without deleting its id and breaking baselines.",
+    "why": "Rule ids must remain stable; deprecation preserves compatibility while reducing noise.",
+    "scope": [
+      "Add a `deprecated` flag to rule metadata that keeps the id resolvable but excludes it from default execution.",
+      "Warn when a baseline or config references a deprecated rule."
+    ],
+    "guidance": ["Document the deprecation lifecycle and a minimum deprecation window."],
+    "acceptance": ["Deprecated rules are documented and skipped by default", "Tests cover baseline references"],
+    "tests": ["Unit and CLI tests"],
+    "security": "Never silently drop a rule without a deprecation notice.",
+    "deps": "None.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "test(rules): add adversarial fixtures for each detector",
+    "phase": "phase-5",
+    "labels": ["testing", "security", "phase-5", "difficulty/medium"],
+    "problem": "Detectors are not stressed with inputs designed to evade or overwhelm them.",
+    "why": "Adversarial fixtures reveal both false negatives and pathological cost.",
+    "scope": ["Add per-rule fixtures using macros, aliases, whitespace tricks, and unusual but valid syntax."],
+    "guidance": ["Document expected behavior (trigger or not) for each adversarial sample."],
+    "acceptance": ["Each detector has at least one adversarial fixture", "Behavior documented"],
+    "tests": ["Corpus-adjacent adversarial test"],
+    "security": "None.",
+    "deps": "Corpus manifest.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  }
+]

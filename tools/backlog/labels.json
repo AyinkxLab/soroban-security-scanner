@@ -21,6 +21,7 @@
   { "name": "performance", "color": "fbca04", "description": "Performance work" },
   { "name": "developer-experience", "color": "0075ca", "description": "Usability and tooling" },
   { "name": "ai", "color": "5319e7", "description": "Optional assistance layer" },
+  { "name": "release", "color": "e4e669", "description": "Release and distribution engineering" },
   { "name": "good-first-issue", "color": "7057ff", "description": "Good for new contributors" },
   { "name": "difficulty/trivial", "color": "ededed", "description": "Small, well-scoped change" },
   { "name": "difficulty/medium", "color": "ededed", "description": "Moderate effort" },

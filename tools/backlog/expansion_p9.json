@@ -1,0 +1,62 @@
+[
+  {
+    "title": "feat(cli): add an interactive configuration wizard to init",
+    "phase": "phase-9",
+    "labels": ["cli", "developer-experience", "phase-9", "difficulty/medium"],
+    "problem": "`init` writes a static template, so users must edit TOML by hand to get a useful first configuration.",
+    "why": "A guided setup produces a working configuration in seconds and teaches the options.",
+    "scope": ["Add an opt-in `--interactive` mode that asks about severity, categories, and excludes, then writes the file."],
+    "guidance": ["Keep non-interactive behavior unchanged; never prompt when stdin is not a TTY."],
+    "acceptance": ["Interactive flow documented and tested with scripted input"],
+    "tests": ["CLI test driving the wizard through stdin"],
+    "security": "Do not write outside the target directory; respect `--force`.",
+    "deps": "None.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "feat(cli): add rules markdown export for documentation",
+    "phase": "phase-9",
+    "labels": ["cli", "documentation", "phase-9", "difficulty/trivial"],
+    "problem": "The rule catalog table in the docs is maintained by hand and can drift from the code.",
+    "why": "Generating the table from metadata keeps documentation accurate.",
+    "scope": ["Add `rules --format markdown` that emits the catalog table."],
+    "guidance": ["Match the existing docs table format so it can be pasted or generated in CI."],
+    "acceptance": ["Markdown output tested and usable in the docs"],
+    "tests": ["CLI test asserting the header and a rule row"],
+    "security": "None.",
+    "deps": "Rule registry introspection API.",
+    "complexity": "trivial",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "docs(dx): add an editor integration specification (LSP) spike",
+    "phase": "phase-9",
+    "labels": ["documentation", "developer-experience", "phase-9", "difficulty/medium"],
+    "problem": "There is no path for editor integration, and the effort is large enough to need a design first.",
+    "why": "In-editor findings are the highest-leverage developer experience improvement.",
+    "scope": ["Write a spike document covering an LSP or diagnostics-file approach, scope, and reuse of the core library."],
+    "guidance": ["Prefer a minimal diagnostics provider over a full language server."],
+    "acceptance": ["Spec merged and reviewed", "Resulting tasks filed as separate issues"],
+    "tests": ["Documentation link checker"],
+    "security": "The editor integration must never execute scanned code.",
+    "deps": "Core library API stability.",
+    "complexity": "medium",
+    "dod": "Merged."
+  },
+  {
+    "title": "docs(dx): add a workflow and CI snippets gallery",
+    "phase": "phase-9",
+    "labels": ["documentation", "ci", "phase-9", "difficulty/trivial"],
+    "problem": "Users must assemble workflows from prose, which slows adoption.",
+    "why": "Copy-paste snippets reduce mistakes and showcase capabilities.",
+    "scope": ["Add `examples/workflows/` with GitHub Actions, GitLab, and Makefile snippets."],
+    "guidance": ["Keep snippets minimal and link to the full reference."],
+    "acceptance": ["Snippets added and link-checked", "Referenced from the CI guide"],
+    "tests": ["Documentation link checker"],
+    "security": "Snippets must follow least-privilege patterns.",
+    "deps": "None.",
+    "complexity": "trivial",
+    "dod": "Merged and link-checked."
+  }
+]

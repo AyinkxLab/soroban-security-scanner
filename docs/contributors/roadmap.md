@@ -52,8 +52,10 @@ labels (`security`, `soroban`, `rust`, `cli`, `github`, `ci`, `testing`,
 labels (`difficulty/trivial`, `difficulty/medium`, `difficulty/high`).
 
 The backlog is authored from structured definitions under `tools/backlog/` and
-created with `tools/create_backlog.py` (dry-run by default, idempotent). This
-keeps issue quality consistent and avoids duplicate or artificial issues.
+created with `tools/create_backlog.py` (dry-run by default, idempotent). The
+full manifest is [`../ISSUE_BACKLOG.md`](../ISSUE_BACKLOG.md), regenerated with
+`tools/generate_manifest.py`. This keeps issue quality consistent and avoids
+duplicate or artificial issues.
 
 Start with `good-first-issue` if you are new.
 

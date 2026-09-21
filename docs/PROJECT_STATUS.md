@@ -263,25 +263,38 @@ Release throughput on a developer machine: ~2,500-2,800 entry points/s
 
 ## Contributor backlog
 
-A backlog of **70 meaningful issues** derived from real remaining work was
-created on GitHub from structured definitions in `tools/backlog/` via
-`tools/create_backlog.py` (idempotent, dry-run by default).
+An expanded backlog of **168 open issues** is tracked on GitHub. It is authored
+from structured definitions in `tools/backlog/` and created with
+`tools/create_backlog.py` (idempotent, dry-run by default). The full manifest is
+[`docs/ISSUE_BACKLOG.md`](ISSUE_BACKLOG.md), regenerated with
+`tools/generate_manifest.py`.
 
-Breakdown:
+Breakdown by phase:
 
-- **By complexity:** 17 `difficulty/trivial`, 40 `difficulty/medium`,
-  13 `difficulty/high`.
-- **By area:** detectors (13), parser (7), CLI (7), reporting (6), testing (7),
-  performance (4), integrations (6), documentation (5), release (6), AI (3),
-  good-first-issue (6).
-- Labels: phase-1..phase-11, category labels, and complexity labels.
-- Every issue includes problem, why it matters, scope, technical guidance,
-  acceptance criteria, tests, security considerations, dependencies, complexity,
-  and definition of done.
-- No artificial or duplicate issues were created; the count reflects real work
-  rather than an arbitrary target.
+| Phase | Count |
+| ----- | ----- |
+| phase-1 Foundation | 11 |
+| phase-2 Parsing | 16 |
+| phase-3 Engine | 15 |
+| phase-4 Detectors | 31 |
+| phase-5 Rule quality | 20 |
+| phase-6 CLI and reporting | 14 |
+| phase-7 Baselines and CI | 11 |
+| phase-8 GitHub integrations | 12 |
+| phase-9 Developer experience | 13 |
+| phase-10 Advanced analysis and AI | 10 |
+| phase-11 Hardening and release | 15 |
+| **Total** | **168** |
+
+Breakdown by complexity: 41 `difficulty/trivial`, 103 `difficulty/medium`,
+24 `difficulty/high`.
+
+Every issue includes problem, why it matters, scope, technical guidance,
+acceptance criteria, tests, security considerations, dependencies, complexity,
+and definition of done. No artificial, duplicate, or closed issues were created;
+the count reflects real engineering decomposition.
 
 ## Next task
 
 None. The roadmap in this document is complete for v0.1.0; continuing work is
-tracked in the GitHub issue backlog.
+tracked in the GitHub issue backlog and [`docs/ISSUE_BACKLOG.md`](ISSUE_BACKLOG.md).
