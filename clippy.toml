@@ -1,0 +1,4 @@
+# Clippy configuration.
+# Keep the lints strict but avoid noise that does not indicate real problems.
+too-many-arguments-threshold = 8
+type-complexity-threshold = 350

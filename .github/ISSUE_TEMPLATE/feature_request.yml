@@ -1,0 +1,51 @@
+name: Feature request
+description: Suggest a feature or improvement
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem does this solve? Why does it matter?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Core scanner
+        - Parser
+        - Security detectors
+        - Fixtures / corpus
+        - CLI / configuration
+        - Reporting (JSON/SARIF/Markdown)
+        - CI / GitHub integration
+        - Documentation
+        - Performance
+        - Developer tooling
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: security
+    attributes:
+      label: Security considerations
+      options:
+        - label: This feature involves network access
+        - label: This feature involves executing or building code
+        - label: This feature involves handling secrets or credentials
+        - label: This feature involves AI-generated content
