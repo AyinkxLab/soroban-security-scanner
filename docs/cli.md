@@ -76,10 +76,11 @@ semantics, and incremental scanning.
 ## `rules`
 
 ```text
-soroban-scan rules [--format terminal|json] [--category CATEGORY] [--min-severity LEVEL]
+soroban-scan rules [--format terminal|json] [--category CATEGORY] [--min-severity LEVEL] [--search TEXT]
 ```
 
-Lists the rule catalog.
+Lists the rule catalog. `--search` matches case-insensitively against rule id,
+title, description, and category.
 
 ## `explain`
 

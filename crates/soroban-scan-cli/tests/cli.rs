@@ -244,6 +244,21 @@ fn files_from_scans_only_listed_files() {
 }
 
 #[test]
+fn rules_search_filters_results() {
+    let out = run(&["rules", "--search", "ttl"]);
+    assert_eq!(out.code, 0);
+    assert!(out.stdout.contains("SS-006"));
+    assert!(!out.stdout.contains("SS-001"));
+}
+
+#[test]
+fn rules_unknown_category_is_usage_error() {
+    let out = run(&["rules", "--category", "nonsense"]);
+    assert_eq!(out.code, 2);
+    assert!(out.stderr.contains("unknown category"));
+}
+
+#[test]
 fn files_from_rejects_path_traversal() {
     let dir = std::env::temp_dir().join(format!("soroban-scan-cli-ff2-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);

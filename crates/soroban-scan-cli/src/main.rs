@@ -217,6 +217,10 @@ struct RulesArgs {
     /// Filter by minimum default severity.
     #[arg(long, value_name = "LEVEL")]
     min_severity: Option<Severity>,
+
+    /// Case-insensitive search over rule id, title, description, and category.
+    #[arg(long, value_name = "TEXT")]
+    search: Option<String>,
 }
 
 #[derive(Debug, Args)]
@@ -460,6 +464,8 @@ fn run_rules(args: RulesArgs, registry: &RuleRegistry) -> CliResult<u8> {
         None => None,
     };
 
+    let search = args.search.as_ref().map(|s| s.to_ascii_lowercase());
+
     let metas: Vec<_> = registry
         .metadata_sorted()
         .into_iter()
@@ -469,6 +475,15 @@ fn run_rules(args: RulesArgs, registry: &RuleRegistry) -> CliResult<u8> {
         })
         .filter(|meta| match args.min_severity {
             Some(min) => meta.default_severity.meets(min),
+            None => true,
+        })
+        .filter(|meta| match &search {
+            Some(query) => {
+                meta.id.to_ascii_lowercase().contains(query)
+                    || meta.title.to_ascii_lowercase().contains(query)
+                    || meta.description.to_ascii_lowercase().contains(query)
+                    || meta.category.as_str().contains(query.as_str())
+            }
             None => true,
         })
         .collect();

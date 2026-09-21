@@ -109,6 +109,17 @@ require or store keys, does not sign or submit transactions, does not execute
 scanned code, and makes no network requests by default. See
 [`SECURITY.md`](SECURITY.md) and [`docs/security/threat-model.md`](docs/security/threat-model.md).
 
+## Documentation
+
+- [Documentation index](docs/README.md)
+- [Getting Started](docs/getting-started.md) · [Installation](docs/installation.md)
+- [CLI Reference](docs/cli.md) · [Configuration](docs/configuration.md)
+- [Rules](docs/rules/README.md) · [Baselines](docs/baselines.md)
+- [GitHub Integration](docs/github-integration.md)
+- [Security Model](docs/security/security-model.md) · [Threat Model](docs/security/threat-model.md)
+- [Architecture](docs/architecture/overview.md) · [Project Status](docs/PROJECT_STATUS.md)
+- [Troubleshooting](docs/troubleshooting.md)
+
 ## Contributing
 
 Contributions are welcome. Start with [`CONTRIBUTING.md`](CONTRIBUTING.md) and the

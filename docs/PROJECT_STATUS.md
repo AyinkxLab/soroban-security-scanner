@@ -10,7 +10,7 @@ without ambiguity.
 
 **Default branch:** `main`
 
-**Current phase:** Phase 9 — Developer Experience
+**Current phase:** Phase 10 — Advanced Analysis and Optional AI
 
 ---
 
@@ -26,8 +26,8 @@ without ambiguity.
 | 6 | CLI and Reporting | Complete |
 | 7 | Baselines, Incremental Scanning and CI | Complete |
 | 8 | GitHub and Developer Integrations | Complete |
-| 9 | Developer Experience | In progress |
-| 10 | Advanced Analysis and Optional AI | Not started |
+| 9 | Developer Experience | Complete |
+| 10 | Advanced Analysis and Optional AI | In progress |
 | 11 | Production Hardening, Documentation and Release | Not started |
 
 ---
@@ -171,6 +171,19 @@ Supporting work:
       opt-in issue-creation pattern in [`docs/github-integration.md`](github-integration.md).
 - [x] CLI integration tests for `--files-from` and traversal rejection.
 
+### Phase 9 — Developer Experience (complete)
+
+- [x] `rules --search` (case-insensitive over id, title, description, category)
+      and `--category` filtering.
+- [x] Documentation index (`docs/README.md`).
+- [x] Getting Started, Installation, Configuration, and Troubleshooting guides.
+- [x] README documentation index.
+- [x] Human-readable terminal/Markdown reports with severity summaries
+      (Phase 6), remediation guidance, and `explain` for every rule.
+- [x] Example clean and vulnerable projects (Phase 7).
+- [x] Rule template and writing-rules guide (Phase 5).
+- [x] CLI tests for rule search and invalid category.
+
 ---
 
 ## Verified environment
@@ -183,9 +196,9 @@ Supporting work:
 ## Test summary
 
 - Unit tests: 102
-- Integration tests: 32 (CLI 14, corpus 3, rule quality 5, adversarial 6,
+- Integration tests: 34 (CLI 16, corpus 3, rule quality 5, adversarial 6,
   project detection 4)
-- Total: 134 (all passing)
+- Total: 136 (all passing)
 
 ## CI status
 
@@ -214,5 +227,5 @@ Release throughput on a developer machine: ~2,500-2,800 entry points/s
 
 ## Next task
 
-Phase 9: developer experience — interactive explanations, richer reports,
-configuration generator, examples, and the full developer documentation set.
+Phase 10: optional, clearly labeled AI assistance that is disabled by default,
+requires explicit opt-in, and can never override deterministic findings.
