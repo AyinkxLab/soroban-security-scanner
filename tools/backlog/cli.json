@@ -1,0 +1,113 @@
+[
+  {
+    "title": "feat(cli): add `--format github` workflow annotations",
+    "phase": "phase-6",
+    "labels": ["cli", "github", "phase-6", "difficulty/medium"],
+    "problem": "PR annotations are produced by an ad-hoc `jq` step in the PR workflow instead of by the scanner, so local users cannot reproduce them and formats drift.",
+    "why": "A first-class annotation format makes CI simpler and consistent and helps non-GitHub CI too.",
+    "scope": [
+      "Add `github` to `--format`, emitting `::error`/`::warning`/`::notice` lines with file, line, and title.",
+      "Escape workflow command special characters correctly."
+    ],
+    "guidance": ["Reuse severity-to-level mapping; keep one line per finding."],
+    "acceptance": ["`--format github` documented and tested", "PR workflow uses it instead of jq"],
+    "tests": ["Unit test for escaping", "CLI test asserting annotation lines"],
+    "security": "Escape all user-controlled text to prevent workflow-command injection from source paths or titles.",
+    "deps": "None.",
+    "complexity": "medium",
+    "dod": "Merged and green; workflow simplified."
+  },
+  {
+    "title": "feat(cli): add shell completion generation",
+    "phase": "phase-6",
+    "labels": ["cli", "developer-experience", "phase-6", "difficulty/medium"],
+    "problem": "Users must type rule ids and flags manually; there is no completion support.",
+    "why": "Completions materially improve day-to-day usability.",
+    "scope": ["Add a hidden `completions <SHELL>` command generating scripts for bash, zsh, fish, and PowerShell."],
+    "guidance": ["Use `clap_complete`; keep the generator out of the default help output."],
+    "acceptance": ["Completions generate for all supported shells", "Documented in the CLI reference"],
+    "tests": ["CLI test that output is non-empty and contains the binary name"],
+    "security": "None.",
+    "deps": "Adds the `clap_complete` dependency (justify in the PR).",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "feat(cli): add `doctor` diagnostics command",
+    "phase": "phase-9",
+    "labels": ["cli", "developer-experience", "phase-9", "difficulty/medium"],
+    "problem": "When a scan finds nothing, users cannot tell whether the project was classified correctly, configuration was applied, or files were excluded.",
+    "why": "A `doctor` command shortens the debugging loop and improves trust.",
+    "scope": [
+      "Report discovered manifests, classification and evidence, source file count, excludes, effective config, and enabled rules.",
+      "Never print secrets or environment variables."
+    ],
+    "guidance": ["Reuse `project::load` and print a structured summary; support `--format json`."],
+    "acceptance": ["Command documented and tested", "Output includes classification evidence"],
+    "tests": ["CLI tests on the generic and confirmed fixtures"],
+    "security": "Do not echo environment variables or absolute home paths.",
+    "deps": "None.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "feat(cli): add `--exclude-tests` convenience flag",
+    "phase": "phase-9",
+    "labels": ["cli", "developer-experience", "phase-9", "difficulty/trivial"],
+    "problem": "Excluding test code requires manual globs even though `#[cfg(test)]` handling is a known need.",
+    "why": "One flag removes the most common source of noise.",
+    "scope": ["Add `--exclude-tests` that skips items gated behind `#[cfg(test)]` and test directories."],
+    "guidance": ["Reuse the cfg inspection from the parser backlog item."],
+    "acceptance": ["Flag documented and tested"],
+    "tests": ["CLI test with a `cfg(test)` fixture"],
+    "security": "Do not exclude non-test code.",
+    "deps": "Depends on cfg-aware parsing.",
+    "complexity": "trivial",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "feat(cli): support `--max-findings` to bound report size",
+    "phase": "phase-6",
+    "labels": ["cli", "phase-6", "difficulty/trivial"],
+    "problem": "Large scans can produce thousands of findings, flooding terminals and CI logs.",
+    "why": "Bounding output keeps reports readable and protects CI log limits.",
+    "scope": ["Add `--max-findings N` that truncates output with an explicit \"N more\" notice; the exit gate is unaffected."],
+    "guidance": ["Apply after sorting so truncation is deterministic."],
+    "acceptance": ["Truncation is explicit and tested", "Exit code still reflects all findings"],
+    "tests": ["CLI test"],
+    "security": "Never hide the fact that findings were truncated.",
+    "deps": "None.",
+    "complexity": "trivial",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "feat(cli): auto-detect color and add `--color` control",
+    "phase": "phase-6",
+    "labels": ["cli", "developer-experience", "phase-6", "difficulty/medium"],
+    "problem": "Terminal output is monochrome, reducing readability of severity levels.",
+    "why": "Color improves scanning speed for humans without affecting machine formats.",
+    "scope": ["Add `--color auto|always|never`; only colorize terminal output."],
+    "guidance": ["Respect `NO_COLOR` and non-TTY output."],
+    "acceptance": ["Colorized output only for TTY terminal format", "Tests cover `never`"],
+    "tests": ["CLI tests for `--color never`"],
+    "security": "Never emit ANSI escapes into JSON/SARIF.",
+    "deps": "May add a small color crate or emit raw ANSI.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "feat(cli): add `--no-config` to ignore discovered configuration",
+    "phase": "phase-6",
+    "labels": ["cli", "security", "phase-6", "difficulty/trivial"],
+    "problem": "There is no way to run with pure defaults when debugging or when scanning an untrusted repo containing a config file.",
+    "why": "Ignoring repository-provided configuration is useful for trust and reproducibility.",
+    "scope": ["Add `--no-config`, mutually exclusive with `--config`."],
+    "guidance": ["Ensure no config discovery occurs when set."],
+    "acceptance": ["Documented and tested"],
+    "tests": ["CLI test with a repo config present"],
+    "security": "Strengthens the untrusted-config posture.",
+    "deps": "None.",
+    "complexity": "trivial",
+    "dod": "Merged and green."
+  }
+]

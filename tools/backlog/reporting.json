@@ -1,0 +1,101 @@
+[
+  {
+    "title": "feat(report): add HTML report output",
+    "phase": "phase-6",
+    "labels": ["cli", "phase-6", "difficulty/high"],
+    "problem": "There is no self-contained HTML report for sharing with stakeholders who do not use a terminal.",
+    "why": "A browsable report improves communication and review.",
+    "scope": [
+      "Add `--format html` producing a single self-contained file with no external resources.",
+      "Escape all source-derived text to prevent HTML/script injection."
+    ],
+    "guidance": ["Template from findings; inline CSS only; no JavaScript or network fetches."],
+    "acceptance": ["HTML output documented and tested", "Injection tests for crafted evidence strings"],
+    "tests": ["Unit tests", "Escaping tests", "CLI test"],
+    "security": "Treat all finding text as untrusted; escape it. No remote resources (CSP-friendly).",
+    "deps": "May add a small templating crate or use string joining.",
+    "complexity": "high",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "feat(report): add JUnit XML output for CI test reporters",
+    "phase": "phase-7",
+    "labels": ["ci", "phase-7", "difficulty/medium"],
+    "problem": "CI systems that consume JUnit XML cannot display findings as test cases.",
+    "why": "JUnit output integrates with many existing dashboards without custom parsing.",
+    "scope": ["Add `--format junit` mapping findings to test cases by rule and location."],
+    "guidance": ["One test case per finding; failures only for high/critical."],
+    "acceptance": ["Valid JUnit XML produced and validated in tests"],
+    "tests": ["Unit tests parsing the XML", "CLI test"],
+    "security": "Escape XML special characters.",
+    "deps": "None.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "feat(report): include suppressions and remediation metadata in SARIF",
+    "phase": "phase-8",
+    "labels": ["github", "phase-8", "difficulty/medium"],
+    "problem": "SARIF output omits suppression state and some rule help metadata, limiting code-scanning integration.",
+    "why": "Richer SARIF improves GitHub code-scanning UX and dedupe.",
+    "scope": ["Emit `suppressions` for suppressed findings and add `help` markdown to rule metadata."],
+    "guidance": ["Depends on inline suppression support."],
+    "acceptance": ["SARIF validates and includes suppressions", "Snapshot test updated"],
+    "tests": ["Unit tests", "Snapshot test"],
+    "security": "None.",
+    "deps": "Inline suppression support.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "feat(report): group terminal findings by file with code frames",
+    "phase": "phase-6",
+    "labels": ["cli", "developer-experience", "phase-6", "difficulty/medium"],
+    "problem": "Findings are listed flat, making it hard to understand context within a file.",
+    "why": "Grouped output with a few lines of surrounding code speeds up review.",
+    "scope": [
+      "Group findings by file and show a bounded excerpt around each finding.",
+      "Keep excerpt size small and truncate long lines safely."
+    ],
+    "guidance": ["Reuse the original source text already read during parsing; do not re-read files in rules."],
+    "acceptance": ["Grouped output tested", "Output remains deterministic"],
+    "tests": ["Unit tests", "Determinism test"],
+    "security": "Never print more of the file than necessary; avoid exposing unrelated secrets present in source.",
+    "deps": "None.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "feat(report): publish and validate a JSON Schema for reports",
+    "phase": "phase-6",
+    "labels": ["cli", "testing", "phase-6", "difficulty/medium"],
+    "problem": "Consumers have no machine-checkable contract for the JSON report shape.",
+    "why": "A schema prevents accidental breaking changes and helps downstream tooling.",
+    "scope": [
+      "Commit a JSON Schema for the report under `docs/schema/`.",
+      "Add a test that validates a real report against the schema."
+    ],
+    "guidance": ["Keep the schema versioned and referenced from docs."],
+    "acceptance": ["Schema committed and tested", "Documented in the CLI reference"],
+    "tests": ["Schema validation test in CI"],
+    "security": "None.",
+    "deps": "Adds a JSON Schema validation dev-dependency.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "feat(report): add severity summary and top rules to Markdown reports",
+    "phase": "phase-9",
+    "labels": ["documentation", "phase-9", "difficulty/trivial"],
+    "problem": "Markdown reports list findings but do not summarize the most common rules or categories.",
+    "why": "Summaries help reviewers prioritize.",
+    "scope": ["Add a \"Top rules\" and \"Categories\" summary section."],
+    "guidance": ["Compute counts deterministically and sort by count then id."],
+    "acceptance": ["Markdown snapshot updated and tested"],
+    "tests": ["Unit test"],
+    "security": "None.",
+    "deps": "None.",
+    "complexity": "trivial",
+    "dod": "Merged and green."
+  }
+]

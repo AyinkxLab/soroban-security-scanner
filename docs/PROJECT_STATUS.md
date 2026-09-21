@@ -261,7 +261,27 @@ Release throughput on a developer machine: ~2,500-2,800 entry points/s
 
 - [ADR-0001: Rust core with Python supporting tooling](architecture/adr/0001-rust-core-python-tooling.md)
 
+## Contributor backlog
+
+A backlog of **70 meaningful issues** derived from real remaining work was
+created on GitHub from structured definitions in `tools/backlog/` via
+`tools/create_backlog.py` (idempotent, dry-run by default).
+
+Breakdown:
+
+- **By complexity:** 17 `difficulty/trivial`, 40 `difficulty/medium`,
+  13 `difficulty/high`.
+- **By area:** detectors (13), parser (7), CLI (7), reporting (6), testing (7),
+  performance (4), integrations (6), documentation (5), release (6), AI (3),
+  good-first-issue (6).
+- Labels: phase-1..phase-11, category labels, and complexity labels.
+- Every issue includes problem, why it matters, scope, technical guidance,
+  acceptance criteria, tests, security considerations, dependencies, complexity,
+  and definition of done.
+- No artificial or duplicate issues were created; the count reflects real work
+  rather than an arbitrary target.
+
 ## Next task
 
-Create the contributor backlog of meaningful issues derived from real remaining
-work (see `docs/contributors/backlog/`).
+None. The roadmap in this document is complete for v0.1.0; continuing work is
+tracked in the GitHub issue backlog.

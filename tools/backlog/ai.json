@@ -1,0 +1,58 @@
+[
+  {
+    "title": "feat(ai): feature-gated model provider with network safeguards",
+    "phase": "phase-10",
+    "labels": ["ai", "security", "phase-10", "difficulty/high"],
+    "problem": "The `Assistant` trait has no model-backed implementation, so enabling assistance always fails closed.",
+    "why": "A real provider, implemented safely, is the whole point of the optional layer.",
+    "scope": [
+      "Add an opt-in, feature-gated provider behind `--features ai-http` (never default).",
+      "Enforce URL allowlist, timeouts, response-size limits, redirect validation, and SSRF protection.",
+      "Send only the finding and rule metadata; never send whole files or secrets without explicit consent."
+    ],
+    "guidance": ["Use a single well-audited HTTP client; centralize policy in one module."],
+    "acceptance": ["Disabled by default and in the default feature set", "All network policy tests pass", "Documented"],
+    "tests": [
+      "Timeout test",
+      "Invalid URL test",
+      "SSRF/redirect test",
+      "Response-size limit test",
+      "Malformed-response test",
+      "Fail-closed test"
+    ],
+    "security": "This issue is security-critical; require a focused review and adversarial tests.",
+    "deps": "Builds on the existing `Assistant` trait and `docs/ai.md` policy.",
+    "complexity": "high",
+    "dod": "Merged behind a non-default feature with all safeguards tested."
+  },
+  {
+    "title": "feat(ai): cache assistance output for identical findings",
+    "phase": "phase-10",
+    "labels": ["ai", "performance", "phase-10", "difficulty/medium"],
+    "problem": "Repeated assistance requests for the same finding waste time and, with a provider, tokens.",
+    "why": "Caching reduces cost and latency deterministically.",
+    "scope": ["Add a content-addressed cache keyed by fingerprint + provider + model, with a bounded size."],
+    "guidance": ["Store under the scan cache directory; never cache secrets."],
+    "acceptance": ["Cache hit avoids provider calls", "Bounded and documented"],
+    "tests": ["Unit tests for cache keys and eviction"],
+    "security": "Do not cache source content; cache only explanations.",
+    "deps": "Depends on a provider implementation.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "test(ai): redaction tests for assistance output",
+    "phase": "phase-10",
+    "labels": ["ai", "security", "testing", "phase-10", "difficulty/medium"],
+    "problem": "Assistance output must never contain secrets, environment variables, or absolute home paths.",
+    "why": "Assistance is the most likely place for accidental data exposure.",
+    "scope": ["Add tests that feed findings containing secret-like strings and assert the output is redacted or rejects them."],
+    "guidance": ["Implement a redaction pass for common token patterns and home directories."],
+    "acceptance": ["Redaction tests pass for offline and provider paths"],
+    "tests": ["The redaction tests themselves"],
+    "security": "Directly protects against secret leakage.",
+    "deps": "None.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  }
+]

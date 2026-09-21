@@ -1,0 +1,65 @@
+[
+  {
+    "title": "perf(core): parse files in parallel with bounded concurrency",
+    "phase": "phase-5",
+    "labels": ["performance", "rust", "phase-5", "difficulty/high"],
+    "problem": "Parsing is single-threaded, so large repositories underutilize available cores.",
+    "why": "Parsing dominates scan time; parallelism is the largest realistic speedup.",
+    "scope": [
+      "Parse files concurrently with a bounded worker pool while preserving deterministic output.",
+      "Keep an opt-out for constrained environments."
+    ],
+    "guidance": ["Prefer a small internal thread pool over a heavyweight dependency if feasible; otherwise justify `rayon`."],
+    "acceptance": ["Byte-identical output vs. serial parsing", "Measured speedup documented"],
+    "tests": ["Determinism test across orderings", "Benchmark comparison"],
+    "security": "Bound concurrency and memory to avoid resource exhaustion on huge repositories.",
+    "deps": "Possibly `rayon` (justify).",
+    "complexity": "high",
+    "dod": "Merged with benchmark numbers in the PR."
+  },
+  {
+    "title": "perf(bench): measure and report peak memory usage",
+    "phase": "phase-5",
+    "labels": ["performance", "phase-5", "difficulty/medium"],
+    "problem": "The benchmark reports throughput but not memory, yet memory matters for CI containers.",
+    "why": "Prevents regressions that trade speed for unacceptable memory.",
+    "scope": ["Extend the benchmark example to sample and print peak RSS on supported platforms."],
+    "guidance": ["Use platform APIs with a graceful fallback when unavailable."],
+    "acceptance": ["Benchmark prints memory for each size", "Documented in the benchmark guide"],
+    "tests": ["Benchmark compiles and runs in CI build"],
+    "security": "None.",
+    "deps": "May add a small platform dependency.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "perf(rules): add per-rule timing breakdown",
+    "phase": "phase-5",
+    "labels": ["performance", "phase-5", "difficulty/medium"],
+    "problem": "When scans are slow, it is unclear which rule dominates.",
+    "why": "Per-rule timing makes optimization targeted.",
+    "scope": ["Add an opt-in `--timings` flag reporting per-rule elapsed time to stderr."],
+    "guidance": ["Use `Instant` around each rule; keep output out of machine formats."],
+    "acceptance": ["Flag documented and tested", "No impact on determinism"],
+    "tests": ["CLI test asserting timing lines"],
+    "security": "None.",
+    "deps": "None.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "perf(ci): add a benchmark regression threshold",
+    "phase": "phase-11",
+    "labels": ["performance", "ci", "phase-11", "difficulty/medium"],
+    "problem": "Nothing detects a large performance regression before merge.",
+    "why": "A loose threshold catches accidental quadratic behavior without flaky failures.",
+    "scope": ["Run the benchmark in CI and fail only when throughput drops beyond a generous factor vs. a recorded baseline."],
+    "guidance": ["Store the baseline in the repo; compare on the same runner type."],
+    "acceptance": ["CI job configured with a documented threshold"],
+    "tests": ["The job itself"],
+    "security": "Avoid flakiness: use a wide margin and ubuntu-only." ,
+    "deps": "None.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  }
+]

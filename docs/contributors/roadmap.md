@@ -44,6 +44,19 @@ The implementation proceeds through eleven phases. See
 [`../PROJECT_STATUS.md`](../PROJECT_STATUS.md) for current status. Contributor
 issues are organized with `phase-N` labels that correspond to these phases.
 
+## Live backlog
+
+The active backlog lives on GitHub as issues labeled `phase-N`, with category
+labels (`security`, `soroban`, `rust`, `cli`, `github`, `ci`, `testing`,
+`documentation`, `performance`, `developer-experience`, `ai`) and complexity
+labels (`difficulty/trivial`, `difficulty/medium`, `difficulty/high`).
+
+The backlog is authored from structured definitions under `tools/backlog/` and
+created with `tools/create_backlog.py` (dry-run by default, idempotent). This
+keeps issue quality consistent and avoids duplicate or artificial issues.
+
+Start with `good-first-issue` if you are new.
+
 ## Adding roadmap items
 
 Propose new work by opening a feature request. A roadmap item is accepted when it
