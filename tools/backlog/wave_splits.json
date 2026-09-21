@@ -1,0 +1,133 @@
+[
+  {
+    "title": "feat(ai): implement provider network safeguards (allowlist, timeouts, size limits, redirects)",
+    "phase": "phase-10",
+    "labels": ["ai", "security", "phase-10", "difficulty/high"],
+    "problem": "The provider interface and response validation are specified, but the outbound HTTP policy itself (destination allowlist, timeouts, response-size limits, redirect validation, SSRF protection, fail-closed behavior) is not implemented.",
+    "why": "Without an enforced network policy, enabling a provider becomes an SSRF and data-exfiltration risk.",
+    "scope": [
+      "Implement a feature-gated HTTP client that enforces an explicit destination allowlist.",
+      "Enforce connect/read timeouts, a hard response-size limit, and redirect validation.",
+      "Deny loopback, link-local, and private-range destinations; fail closed on any violation."
+    ],
+    "guidance": [
+      "Centralize all policy in one module so it can be audited in isolation.",
+      "Validate allowlist entries during configuration loading and reject invalid ones."
+    ],
+    "acceptance": [
+      "Policy is enforced and documented",
+      "Disabled by default and absent from the default feature set",
+      "A clear error is returned when policy is violated"
+    ],
+    "tests": [
+      "Timeout test",
+      "Invalid URL and malformed response tests",
+      "SSRF and unsafe-redirect tests",
+      "Response-size limit test",
+      "Fail-closed test"
+    ],
+    "security": "Security-critical; requires focused review and adversarial tests.",
+    "deps": "Provider abstraction and response validation.",
+    "complexity": "high",
+    "dod": "Merged behind a non-default feature with all safeguards tested."
+  },
+  {
+    "title": "feat(parser): extract direct intra-file function calls",
+    "phase": "phase-3",
+    "labels": ["rust", "phase-3", "difficulty/medium"],
+    "problem": "Rules cannot see which same-file helper a function calls, so behavior performed in helpers is invisible.",
+    "why": "A direct-call map is the foundation for interprocedural analysis and reduces false positives.",
+    "scope": [
+      "Build a per-function map of direct calls to functions defined in the same file, with spans.",
+      "Expose the map on the parsed source and analysis context."
+    ],
+    "guidance": [
+      "Resolve callee names best-effort; record unresolved calls as unknown.",
+      "Do not attempt cross-crate resolution."
+    ],
+    "acceptance": ["Direct-call map exposed and documented", "Tests cover nested modules and collisions"],
+    "tests": ["Unit tests", "Fixture with helper calls"],
+    "security": "Never fabricate edges; ambiguity is recorded, not guessed.",
+    "deps": "None.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "feat(parser): summarize transitive helper authorization and TTL effects",
+    "phase": "phase-3",
+    "labels": ["rust", "security", "phase-3", "difficulty/high"],
+    "problem": "Even with direct calls, rules need to know whether a helper transitively performs authorization or TTL management.",
+    "why": "This is the single largest source of false positives for SS-001 and SS-006 today.",
+    "scope": [
+      "Compute per-function summaries over the direct-call map using a bounded fixed-point.",
+      "Mark whether a function or its helpers call require_auth or manage TTL."
+    ],
+    "guidance": [
+      "Cap recursion depth and iteration count; document the bound.",
+      "Handle recursive and mutually recursive helpers without hanging."
+    ],
+    "acceptance": ["Summaries correct for nested and recursive helpers", "Depth cap documented"],
+    "tests": ["Unit tests", "Cycle handling test"],
+    "security": "Bound computation to avoid pathological cost on hostile input.",
+    "deps": "Direct intra-file call extraction.",
+    "complexity": "high",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "feat(rules): use helper summaries in SS-001 and SS-006",
+    "phase": "phase-3",
+    "labels": ["security", "soroban", "phase-3", "difficulty/medium"],
+    "problem": "SS-001 and SS-006 still report entry points whose authorization or TTL handling happens in a helper.",
+    "why": "Consuming helper summaries removes well-known false positives without weakening detection.",
+    "scope": [
+      "Update SS-001 and SS-006 to consider transitive helper summaries.",
+      "Add negative fixtures where a helper authorizes or extends TTL."
+    ],
+    "guidance": ["Keep the change conservative: only suppress when a helper summary proves the behavior."],
+    "acceptance": ["False-positive fixtures pass", "Docs updated with the new behavior"],
+    "tests": ["Corpus negative fixtures", "Regression count check"],
+    "security": "Do not reduce true-positive detection; add negatives only where proven.",
+    "deps": "Transitive helper summaries.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "feat(engine): detect inline suppression directives from comments",
+    "phase": "phase-5",
+    "labels": ["security", "developer-experience", "phase-5", "difficulty/medium"],
+    "problem": "There is no way to suppress a specific finding at a specific source location, and no parser for suppression comments.",
+    "why": "Targeted suppression is essential to adopt a scanner without weakening rules project-wide.",
+    "scope": [
+      "Parse adjacent comments of the form `// soroban-scan: ignore SS-XXX` with an optional reason.",
+      "Match directives to the nearest applicable item or finding location."
+    ],
+    "guidance": [
+      "Ignore directives that appear inside string literals or comments not adjacent to code.",
+      "Keep the pattern documented and stable."
+    ],
+    "acceptance": ["Directives detected and exposed with their targets", "Pattern documented"],
+    "tests": ["Unit tests", "Adversarial test for directives inside strings"],
+    "security": "Suppressions must be explicit and auditable.",
+    "deps": "None.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  },
+  {
+    "title": "feat(engine): apply inline suppressions and report suppressed counts",
+    "phase": "phase-5",
+    "labels": ["security", "cli", "phase-5", "difficulty/medium"],
+    "problem": "Even when suppression directives are detected, the engine neither applies them nor surfaces how many findings were suppressed.",
+    "why": "Suppressions must be applied consistently and remain visible so they cannot hide findings silently.",
+    "scope": [
+      "Apply detected suppressions during the scan.",
+      "Count suppressed findings in statistics and expose them in terminal, JSON, and SARIF."
+    ],
+    "guidance": ["Never silently drop findings; always report the suppressed count and reasons."],
+    "acceptance": ["Suppressed findings excluded from the gate but counted", "SARIF marks suppressions"],
+    "tests": ["Engine tests", "Report and CLI tests"],
+    "security": "Auditability is the key requirement.",
+    "deps": "Inline suppression detection.",
+    "complexity": "medium",
+    "dod": "Merged and green."
+  }
+]

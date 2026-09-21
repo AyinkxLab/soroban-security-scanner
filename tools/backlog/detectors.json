@@ -2,7 +2,12 @@
   {
     "title": "feat(rules): add SS-008 checked-arithmetic detector for storage values",
     "phase": "phase-4",
-    "labels": ["security", "soroban", "phase-4", "difficulty/high"],
+    "labels": [
+      "security",
+      "soroban",
+      "phase-4",
+      "difficulty/high"
+    ],
     "problem": "Contract entry points perform unchecked `+`, `-`, `*` on values read from storage or supplied as parameters. On overflow these panic in debug or wrap/abort depending on the build, and Soroban provides `checked_add`/`checked_sub`/`checked_mul` for explicit handling.",
     "why": "Silent arithmetic errors can corrupt balances and accounting; explicit checked math turns an undefined outcome into a typed contract error.",
     "scope": [
@@ -33,7 +38,12 @@
   {
     "title": "feat(rules): add SS-009 insecure randomness detector",
     "phase": "phase-4",
-    "labels": ["security", "soroban", "phase-4", "difficulty/medium"],
+    "labels": [
+      "security",
+      "soroban",
+      "phase-4",
+      "difficulty/medium"
+    ],
     "problem": "Contracts may derive randomness from `env.ledger().timestamp()` or `ledger().sequence()`, which are predictable and attacker-influenced by transaction submission timing.",
     "why": "Predictable randomness enables manipulation of lotteries, selection, and any value-dependent logic.",
     "scope": [
@@ -48,7 +58,11 @@
       "SS-009 documented, fixtured, and tested.",
       "Negative fixture using a stored deadline does not trigger."
     ],
-    "tests": ["Unit tests", "Corpus positive/negative", "Determinism test"],
+    "tests": [
+      "Unit tests",
+      "Corpus positive/negative",
+      "Determinism test"
+    ],
     "security": "Heuristic; confidence low. Must not claim a concrete exploit.",
     "deps": "None.",
     "complexity": "medium",
@@ -57,7 +71,12 @@
   {
     "title": "feat(rules): add SS-010 missing-events detector for privileged operations",
     "phase": "phase-4",
-    "labels": ["security", "soroban", "phase-4", "difficulty/medium"],
+    "labels": [
+      "security",
+      "soroban",
+      "phase-4",
+      "difficulty/medium"
+    ],
     "problem": "Privileged state changes (admin changes, parameter updates, pausing) are performed without emitting an event, removing the off-chain audit trail.",
     "why": "Events are how indexers and users observe critical changes; missing events reduce accountability and incident response.",
     "scope": [
@@ -68,8 +87,14 @@
       "Match storage key literals/`symbol_short!` values against a configurable list.",
       "Report at the mutation site."
     ],
-    "acceptance": ["SS-010 documented, fixtured, tested", "Key list documented"],
-    "tests": ["Unit tests", "Corpus fixtures"],
+    "acceptance": [
+      "SS-010 documented, fixtured, tested",
+      "Key list documented"
+    ],
+    "tests": [
+      "Unit tests",
+      "Corpus fixtures"
+    ],
     "security": "Informational/design signal; severity low.",
     "deps": "None.",
     "complexity": "medium",
@@ -78,7 +103,12 @@
   {
     "title": "feat(rules): add SS-011 re-initialization detector",
     "phase": "phase-4",
-    "labels": ["security", "soroban", "phase-4", "difficulty/high"],
+    "labels": [
+      "security",
+      "soroban",
+      "phase-4",
+      "difficulty/high"
+    ],
     "problem": "A contract exposes an `initialize`-style function that writes configuration without checking whether it has already been initialized, allowing an attacker to re-initialize and take over.",
     "why": "Re-initialization is a common high-impact vulnerability in upgradeable/initializable contracts.",
     "scope": [
@@ -89,8 +119,15 @@
       "Look for storage `has`/`get` guards and `#[contracttype]` initialization flags.",
       "Treat `__constructor` as safe."
     ],
-    "acceptance": ["SS-011 documented, fixtured, tested", "Both constructor and flag-guard negatives covered"],
-    "tests": ["Unit tests", "Corpus fixtures", "False-positive tests"],
+    "acceptance": [
+      "SS-011 documented, fixtured, tested",
+      "Both constructor and flag-guard negatives covered"
+    ],
+    "tests": [
+      "Unit tests",
+      "Corpus fixtures",
+      "False-positive tests"
+    ],
     "security": "High severity, medium confidence; state reachability assumptions in docs.",
     "deps": "None.",
     "complexity": "high",
@@ -99,16 +136,28 @@
   {
     "title": "feat(rules): add SS-012 unbounded Vec growth detector",
     "phase": "phase-4",
-    "labels": ["security", "soroban", "phase-4", "difficulty/medium"],
+    "labels": [
+      "security",
+      "soroban",
+      "phase-4",
+      "difficulty/medium"
+    ],
     "problem": "Entry points push into a storage-backed `Vec`/`Map` with no cap, growing ledger entries without bound.",
     "why": "Unbounded growth increases rent and eventually makes reads/iteration fail, a denial of service.",
     "scope": [
       "Detect `push_back`/`push_front`/`set` on a value read from storage followed by a write-back, with no length check.",
       "Negative case: a capped collection."
     ],
-    "guidance": ["Combine storage read + mutation facts; check for a `len()` comparison guard."],
-    "acceptance": ["SS-012 documented, fixtured, tested"],
-    "tests": ["Unit tests", "Corpus fixtures"],
+    "guidance": [
+      "Combine storage read + mutation facts; check for a `len()` comparison guard."
+    ],
+    "acceptance": [
+      "SS-012 documented, fixtured, tested"
+    ],
+    "tests": [
+      "Unit tests",
+      "Corpus fixtures"
+    ],
     "security": "Heuristic, medium/low.",
     "deps": "Related to SS-003.",
     "complexity": "medium",
@@ -117,7 +166,12 @@
   {
     "title": "feat(rules): add SS-013 cross-contract call before state update detector",
     "phase": "phase-4",
-    "labels": ["security", "soroban", "phase-4", "difficulty/high"],
+    "labels": [
+      "security",
+      "soroban",
+      "phase-4",
+      "difficulty/high"
+    ],
     "problem": "An entry point makes a cross-contract call before updating its own state, allowing a malicious callee to re-enter and observe/exploit inconsistent state.",
     "why": "Soroban permits reentrancy; ordering matters for multi-contract invariants.",
     "scope": [
@@ -128,8 +182,15 @@
       "Use byte spans to order AST call facts and mutation facts.",
       "Be conservative: only flag when both occur in the same function."
     ],
-    "acceptance": ["SS-013 documented, fixtured, tested", "Ordering proof in evidence"],
-    "tests": ["Unit tests", "Corpus fixtures", "Negative ordering test"],
+    "acceptance": [
+      "SS-013 documented, fixtured, tested",
+      "Ordering proof in evidence"
+    ],
+    "tests": [
+      "Unit tests",
+      "Corpus fixtures",
+      "Negative ordering test"
+    ],
     "security": "High severity, low confidence; document limitations clearly.",
     "deps": "Depends on ordered facts from `rules::util`.",
     "complexity": "high",
@@ -138,13 +199,28 @@
   {
     "title": "feat(rules): add SS-014 token transfer amount validation detector",
     "phase": "phase-4",
-    "labels": ["security", "soroban", "phase-4", "difficulty/medium"],
+    "labels": [
+      "security",
+      "soroban",
+      "phase-4",
+      "difficulty/medium"
+    ],
     "problem": "Token transfers use an amount parameter with no validation that it is positive and within bounds.",
     "why": "Negative or absurd amounts can drain or corrupt balances depending on token semantics.",
-    "scope": ["Detect `transfer`/`transfer_from` calls whose amount argument is an unchecked parameter."],
-    "guidance": ["Detect the call, then check whether a comparison against zero guards the amount."],
-    "acceptance": ["SS-014 documented, fixtured, tested"],
-    "tests": ["Unit tests", "Corpus fixtures", "False-positive test with validation"],
+    "scope": [
+      "Detect `transfer`/`transfer_from` calls whose amount argument is an unchecked parameter."
+    ],
+    "guidance": [
+      "Detect the call, then check whether a comparison against zero guards the amount."
+    ],
+    "acceptance": [
+      "SS-014 documented, fixtured, tested"
+    ],
+    "tests": [
+      "Unit tests",
+      "Corpus fixtures",
+      "False-positive test with validation"
+    ],
     "security": "Medium/low.",
     "deps": "None.",
     "complexity": "medium",
@@ -153,7 +229,12 @@
   {
     "title": "feat(rules): add SS-015 deprecated Soroban SDK version detector",
     "phase": "phase-4",
-    "labels": ["security", "soroban", "phase-4", "difficulty/medium"],
+    "labels": [
+      "security",
+      "soroban",
+      "phase-4",
+      "difficulty/medium"
+    ],
     "problem": "The project depends on an old `soroban-sdk` major version with known API or security fixes.",
     "why": "Staying current avoids known issues and unsupported behavior.",
     "scope": [
@@ -164,8 +245,14 @@
       "Emit a manifest-level finding; do not require source parsing.",
       "Make the minimum configurable and documented."
     ],
-    "acceptance": ["SS-015 documented, fixtured, tested", "Manifest-level findings supported by the engine"],
-    "tests": ["Unit test with a synthetic manifest", "Fixture with an old version"],
+    "acceptance": [
+      "SS-015 documented, fixtured, tested",
+      "Manifest-level findings supported by the engine"
+    ],
+    "tests": [
+      "Unit test with a synthetic manifest",
+      "Fixture with an old version"
+    ],
     "security": "Informational; severity depends on the policy.",
     "deps": "Engine currently requires a source location; a manifest location may be needed.",
     "complexity": "medium",
@@ -174,13 +261,27 @@
   {
     "title": "feat(rules): add SS-016 instance-storage-for-unbounded-data detector",
     "phase": "phase-4",
-    "labels": ["security", "soroban", "phase-4", "difficulty/medium"],
+    "labels": [
+      "security",
+      "soroban",
+      "phase-4",
+      "difficulty/medium"
+    ],
     "problem": "Large or growing collections are stored in instance storage, which is loaded for every invocation and has strict size limits.",
     "why": "Misusing instance storage increases cost and can break the contract at scale.",
-    "scope": ["Flag repeated instance-storage `set` of distinct keys or collection growth."],
-    "guidance": ["Distinguish constant instance config from growing data via key variability."],
-    "acceptance": ["SS-016 documented, fixtured, tested"],
-    "tests": ["Unit tests", "Corpus fixtures"],
+    "scope": [
+      "Flag repeated instance-storage `set` of distinct keys or collection growth."
+    ],
+    "guidance": [
+      "Distinguish constant instance config from growing data via key variability."
+    ],
+    "acceptance": [
+      "SS-016 documented, fixtured, tested"
+    ],
+    "tests": [
+      "Unit tests",
+      "Corpus fixtures"
+    ],
     "security": "Medium/low.",
     "deps": "None.",
     "complexity": "medium",
@@ -189,13 +290,28 @@
   {
     "title": "feat(rules): add SS-017 authorization-after-mutation detector",
     "phase": "phase-4",
-    "labels": ["security", "soroban", "phase-4", "difficulty/medium"],
+    "labels": [
+      "security",
+      "soroban",
+      "phase-4",
+      "difficulty/medium"
+    ],
     "problem": "A function mutates state before calling `require_auth`, so the authorization check runs after the effect.",
     "why": "State changed before the check can persist on some paths and indicates a logic ordering bug.",
-    "scope": ["Order `require_auth` facts against storage mutation facts within an entry point."],
-    "guidance": ["Use spans to compare positions; only flag mutation strictly before auth."],
-    "acceptance": ["SS-017 documented, fixtured, tested"],
-    "tests": ["Unit tests", "Corpus fixtures", "Ordering negative test"],
+    "scope": [
+      "Order `require_auth` facts against storage mutation facts within an entry point."
+    ],
+    "guidance": [
+      "Use spans to compare positions; only flag mutation strictly before auth."
+    ],
+    "acceptance": [
+      "SS-017 documented, fixtured, tested"
+    ],
+    "tests": [
+      "Unit tests",
+      "Corpus fixtures",
+      "Ordering negative test"
+    ],
     "security": "Medium/medium.",
     "deps": "Ordered facts helper.",
     "complexity": "medium",
@@ -204,16 +320,30 @@
   {
     "title": "feat(rules): reduce SS-002 false positives via client address provenance",
     "phase": "phase-5",
-    "labels": ["security", "soroban", "phase-5", "difficulty/high"],
+    "labels": [
+      "security",
+      "soroban",
+      "phase-5",
+      "difficulty/high"
+    ],
     "problem": "SS-002 flags any unauthenticated cross-contract constructor, including calls to a hardcoded, trusted contract address or a stored admin-configured address.",
     "why": "False positives erode trust and cause teams to disable the rule.",
     "scope": [
       "Track whether the client address argument is a hardcoded literal, a storage read, or an untrusted parameter.",
       "Downgrade or suppress the finding when the address is trusted configuration."
     ],
-    "guidance": ["Extend `CallFact` to capture argument provenance for constructors."],
-    "acceptance": ["SS-002 documentation updated with the provenance logic", "Fixtures for trusted vs untrusted addresses"],
-    "tests": ["Unit tests", "Corpus additions", "Regression comparing before/after counts"],
+    "guidance": [
+      "Extend `CallFact` to capture argument provenance for constructors."
+    ],
+    "acceptance": [
+      "SS-002 documentation updated with the provenance logic",
+      "Fixtures for trusted vs untrusted addresses"
+    ],
+    "tests": [
+      "Unit tests",
+      "Corpus additions",
+      "Regression comparing before/after counts"
+    ],
     "security": "Do not reduce true-positive detection; add negatives only where justified.",
     "deps": "None.",
     "complexity": "high",
@@ -222,40 +352,32 @@
   {
     "title": "feat(rules): add rule categories filter to configuration",
     "phase": "phase-5",
-    "labels": ["developer-experience", "phase-5", "difficulty/medium"],
+    "labels": [
+      "developer-experience",
+      "phase-5",
+      "difficulty/medium"
+    ],
     "problem": "Rules can only be enabled/disabled individually; teams cannot disable a whole category (for example all low-confidence heuristics).",
     "why": "Category-level control is a common and convenient policy mechanism.",
     "scope": [
       "Add `[rules] disabled_categories = [\"resource-usage\"]` and `enabled_categories`.",
       "Validate category names during config validation."
     ],
-    "guidance": ["Apply category filters in `RuleRegistry`/engine before severity overrides."],
-    "acceptance": ["Config reference and tests updated", "Unknown category is a usage error"],
-    "tests": ["Config parsing tests", "Engine selection tests", "CLI test"],
+    "guidance": [
+      "Apply category filters in `RuleRegistry`/engine before severity overrides."
+    ],
+    "acceptance": [
+      "Config reference and tests updated",
+      "Unknown category is a usage error"
+    ],
+    "tests": [
+      "Config parsing tests",
+      "Engine selection tests",
+      "CLI test"
+    ],
     "security": "None.",
     "deps": "None.",
     "complexity": "medium",
-    "dod": "Merged and green."
-  },
-  {
-    "title": "feat(rules): support inline suppression comments",
-    "phase": "phase-5",
-    "labels": ["developer-experience", "security", "phase-5", "difficulty/high"],
-    "problem": "There is no way to suppress a specific finding at a specific source location without disabling the rule project-wide.",
-    "why": "Targeted suppression is essential for adopting a scanner without weakening it globally.",
-    "scope": [
-      "Support `// soroban-scan: ignore SS-001` and block-level variants, with an optional justification.",
-      "Ensure suppressions are visible in reports (counted, not silently dropped)."
-    ],
-    "guidance": [
-      "Parse comments adjacent to the finding location; match the nearest preceding line.",
-      "Emit a `suppressed` count in stats and JSON."
-    ],
-    "acceptance": ["Suppression documented with security guidance", "Suppressed findings counted in output"],
-    "tests": ["Unit tests for comment parsing", "Corpus fixture", "Report tests"],
-    "security": "Suppressions must be auditable; never silently discard findings.",
-    "deps": "None.",
-    "complexity": "high",
     "dod": "Merged and green."
   }
 ]

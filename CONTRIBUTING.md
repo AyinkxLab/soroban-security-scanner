@@ -17,6 +17,20 @@ By participating, you agree to abide by our
 - **Improve documentation**.
 - **Report a vulnerability** — follow [`SECURITY.md`](SECURITY.md), **not** a public issue.
 
+## Contributing through a wave
+
+If you are contributing through an open-source wave:
+
+- **Request assignment on an issue before starting.** Do not open a pull request
+  for an issue you have not been assigned.
+- Each issue has a `difficulty/*` label that maps to wave points
+  (trivial 100 / medium 150 / high 200).
+- Your pull request must include `Closes #<issue-number>`.
+- Maintainers respond to new issues and pull requests within 48 hours and give a
+  review decision within 72 hours.
+
+See [`docs/WAVE.md`](docs/WAVE.md) for the full process.
+
 ## Development setup
 
 See [`docs/development/setup.md`](docs/development/setup.md).

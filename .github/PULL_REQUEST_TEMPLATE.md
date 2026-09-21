@@ -6,7 +6,9 @@
 
 ## Related issue
 
-<!-- e.g. Closes #123 -->
+<!-- Required: use "Closes #<issue-number>" so the issue closes on merge. -->
+
+Closes #
 
 ## Type of change
 

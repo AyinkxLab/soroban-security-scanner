@@ -21,6 +21,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+from wave_guidelines import render_guidelines
+
 BACKLOG_DIR = Path(__file__).resolve().parent / "backlog"
 
 
@@ -42,7 +44,7 @@ def bullet(items) -> str:
 
 
 def render_body(issue: dict) -> str:
-    return "\n".join(
+    body = "\n".join(
         [
             "## Problem",
             issue["problem"],
@@ -76,6 +78,7 @@ def render_body(issue: dict) -> str:
             "",
         ]
     )
+    return body + "\n" + render_guidelines(issue["title"])
 
 
 def existing_titles() -> set[str]:

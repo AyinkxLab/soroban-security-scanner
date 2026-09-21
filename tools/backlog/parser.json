@@ -2,7 +2,11 @@
   {
     "title": "feat(parser): resolve `use` imports to qualify call paths",
     "phase": "phase-2",
-    "labels": ["rust", "phase-2", "difficulty/high"],
+    "labels": [
+      "rust",
+      "phase-2",
+      "difficulty/high"
+    ],
     "problem": "Detectors match on the literal receiver text, so an aliased import such as `use soroban_sdk::Address as Addr;` or `use crate::token::Client;` is not understood.",
     "why": "Accurate path resolution reduces both false positives and false negatives and unlocks detectors that depend on types.",
     "scope": [
@@ -13,8 +17,15 @@
       "Keep resolution best-effort and syntactic; never attempt name resolution across crates.",
       "Record ambiguity rather than guessing."
     ],
-    "acceptance": ["Resolver used by at least one detector", "Documented limitations", "Tests for aliases and globs"],
-    "tests": ["Unit tests for alias/glob resolution", "Corpus fixture with aliased storage calls"],
+    "acceptance": [
+      "Resolver used by at least one detector",
+      "Documented limitations",
+      "Tests for aliases and globs"
+    ],
+    "tests": [
+      "Unit tests for alias/glob resolution",
+      "Corpus fixture with aliased storage calls"
+    ],
     "security": "Incorrect resolution could hide a finding; fail toward reporting when ambiguous.",
     "deps": "None.",
     "complexity": "high",
@@ -23,16 +34,29 @@
   {
     "title": "feat(parser): inspect `cfg`-gated items and record conditionality",
     "phase": "phase-2",
-    "labels": ["rust", "phase-2", "difficulty/medium"],
+    "labels": [
+      "rust",
+      "phase-2",
+      "difficulty/medium"
+    ],
     "problem": "Items behind `#[cfg(test)]` or platform `cfg` attributes are currently treated identically to always-compiled code, producing findings in non-shipped code.",
     "why": "Suppressing test-only findings reduces noise without weakening production analysis.",
     "scope": [
       "Record `cfg` attributes on items and functions in the inventory.",
       "Allow detectors to skip items gated behind `cfg(test)` by default, with a config override."
     ],
-    "guidance": ["Extract the `cfg` attribute tokens; do not evaluate cfg expressions."],
-    "acceptance": ["Test-only code is excluded by default", "Config flag to include it", "Documented"],
-    "tests": ["Unit tests", "Corpus fixture with `#[cfg(test)]`"],
+    "guidance": [
+      "Extract the `cfg` attribute tokens; do not evaluate cfg expressions."
+    ],
+    "acceptance": [
+      "Test-only code is excluded by default",
+      "Config flag to include it",
+      "Documented"
+    ],
+    "tests": [
+      "Unit tests",
+      "Corpus fixture with `#[cfg(test)]`"
+    ],
     "security": "Do not skip non-test cfg code by default except to avoid duplicate findings.",
     "deps": "None.",
     "complexity": "medium",
@@ -41,16 +65,29 @@
   {
     "title": "feat(parser): resolve workspace dependency versions and features",
     "phase": "phase-2",
-    "labels": ["soroban", "rust", "phase-2", "difficulty/medium"],
+    "labels": [
+      "soroban",
+      "rust",
+      "phase-2",
+      "difficulty/medium"
+    ],
     "problem": "A member using `soroban-sdk = { workspace = true }` records no version, so SS-015 and SDK-version reporting miss it.",
     "why": "Workspace inheritance is the common layout in production repositories.",
     "scope": [
       "Read `[workspace.dependencies]` from the root manifest and resolve inherited versions for members.",
       "Preserve the distinction between declared and inherited."
     ],
-    "guidance": ["Correlate member manifests with the workspace root discovered during scanning."],
-    "acceptance": ["Inherited versions appear in `soroban.sdk_versions`", "Tests cover inheritance"],
-    "tests": ["Unit tests", "Fixture workspace using inherited dependencies"],
+    "guidance": [
+      "Correlate member manifests with the workspace root discovered during scanning."
+    ],
+    "acceptance": [
+      "Inherited versions appear in `soroban.sdk_versions`",
+      "Tests cover inheritance"
+    ],
+    "tests": [
+      "Unit tests",
+      "Fixture workspace using inherited dependencies"
+    ],
     "security": "None.",
     "deps": "Relates to SS-015.",
     "complexity": "medium",
@@ -59,46 +96,55 @@
   {
     "title": "feat(parser): map `mod` declarations to file-based module paths",
     "phase": "phase-2",
-    "labels": ["rust", "phase-2", "difficulty/medium"],
+    "labels": [
+      "rust",
+      "phase-2",
+      "difficulty/medium"
+    ],
     "problem": "Module paths are derived from file locations, but `mod foo;` declarations that resolve to `foo.rs` or `foo/mod.rs` are not tracked, and `#[path]` attributes are ignored.",
     "why": "Accurate module paths improve report quality and future call-graph work.",
-    "scope": ["Follow `mod name;` declarations to their files, including `#[path = \"...\"]`."],
-    "guidance": ["Resolve relative to the parent module directory per the Rust reference."],
-    "acceptance": ["Module paths match `mod` structure", "Tests for `mod.rs` and `#[path]`"],
-    "tests": ["Unit tests", "Fixture with nested modules"],
+    "scope": [
+      "Follow `mod name;` declarations to their files, including `#[path = \"...\"]`."
+    ],
+    "guidance": [
+      "Resolve relative to the parent module directory per the Rust reference."
+    ],
+    "acceptance": [
+      "Module paths match `mod` structure",
+      "Tests for `mod.rs` and `#[path]`"
+    ],
+    "tests": [
+      "Unit tests",
+      "Fixture with nested modules"
+    ],
     "security": "Reject `#[path]` values that escape the crate root.",
     "deps": "None.",
     "complexity": "medium",
     "dod": "Merged and green."
   },
   {
-    "title": "feat(parser): build a per-file function call graph",
-    "phase": "phase-3",
-    "labels": ["rust", "phase-3", "difficulty/high"],
-    "problem": "Rules cannot follow a helper called from an entry point, so authorization or TTL performed in a helper is invisible to SS-001/SS-006.",
-    "why": "Interprocedural awareness is the single largest source of false positives today.",
-    "scope": [
-      "Resolve calls to functions defined in the same file and mark whether a helper transitively calls `require_auth` or extends TTL.",
-      "Expose helper summaries on the analysis context."
-    ],
-    "guidance": ["Do a bounded fixed-point over per-function facts; cap depth and document it."],
-    "acceptance": ["SS-001 and SS-006 consume helper summaries", "False-positive fixtures pass"],
-    "tests": ["Unit tests", "Corpus helpers that authorize", "Cycle handling test"],
-    "security": "Bound recursion to avoid pathological cost.",
-    "deps": "None.",
-    "complexity": "high",
-    "dod": "Merged with reduced false positives documented."
-  },
-  {
     "title": "feat(parser): expose doc comments as evidence",
     "phase": "phase-2",
-    "labels": ["rust", "phase-2", "difficulty/trivial"],
+    "labels": [
+      "rust",
+      "phase-2",
+      "difficulty/trivial"
+    ],
     "problem": "Doc comments on functions and items are parsed as attributes but not surfaced, so guidance and suppression notes cannot reference intent.",
     "why": "Documented intent (for example `/// Permissionless: no auth required`) is useful context and can inform suppressions.",
-    "scope": ["Capture doc comments into the item/function inventory."],
-    "guidance": ["Extract `#[doc = \"...\"]` attributes into a joined string."],
-    "acceptance": ["Inventory exposes doc comments", "Tests cover multiline doc comments"],
-    "tests": ["Unit tests"],
+    "scope": [
+      "Capture doc comments into the item/function inventory."
+    ],
+    "guidance": [
+      "Extract `#[doc = \"...\"]` attributes into a joined string."
+    ],
+    "acceptance": [
+      "Inventory exposes doc comments",
+      "Tests cover multiline doc comments"
+    ],
+    "tests": [
+      "Unit tests"
+    ],
     "security": "None.",
     "deps": "None.",
     "complexity": "trivial",
@@ -107,13 +153,27 @@
   {
     "title": "feat(parser): robustly associate source files with their crate roots",
     "phase": "phase-2",
-    "labels": ["rust", "phase-2", "difficulty/medium"],
+    "labels": [
+      "rust",
+      "phase-2",
+      "difficulty/medium"
+    ],
     "problem": "Crate-root association uses the longest matching manifest directory, which is wrong for nested workspaces where an inner crate is not a workspace member.",
     "why": "Incorrect module paths degrade reports and any path-based logic.",
-    "scope": ["Verify membership against workspace `members` globs before assigning a crate root."],
-    "guidance": ["Record ambiguous associations as diagnostics rather than guessing."],
-    "acceptance": ["Nested workspace fixture maps correctly", "Diagnostics for ambiguous files"],
-    "tests": ["Unit tests", "Nested workspace fixture"],
+    "scope": [
+      "Verify membership against workspace `members` globs before assigning a crate root."
+    ],
+    "guidance": [
+      "Record ambiguous associations as diagnostics rather than guessing."
+    ],
+    "acceptance": [
+      "Nested workspace fixture maps correctly",
+      "Diagnostics for ambiguous files"
+    ],
+    "tests": [
+      "Unit tests",
+      "Nested workspace fixture"
+    ],
     "security": "None.",
     "deps": "None.",
     "complexity": "medium",

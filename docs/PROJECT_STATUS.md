@@ -263,7 +263,7 @@ Release throughput on a developer machine: ~2,500-2,800 entry points/s
 
 ## Contributor backlog
 
-An expanded backlog of **168 open issues** is tracked on GitHub. It is authored
+An expanded backlog of **170 open issues** is tracked on GitHub. It is authored
 from structured definitions in `tools/backlog/` and created with
 `tools/create_backlog.py` (idempotent, dry-run by default). The full manifest is
 [`docs/ISSUE_BACKLOG.md`](ISSUE_BACKLOG.md), regenerated with
@@ -275,24 +275,37 @@ Breakdown by phase:
 | ----- | ----- |
 | phase-1 Foundation | 11 |
 | phase-2 Parsing | 16 |
-| phase-3 Engine | 15 |
-| phase-4 Detectors | 31 |
-| phase-5 Rule quality | 20 |
+| phase-3 Engine | 17 |
+| phase-4 Detectors | 30 |
+| phase-5 Rule quality | 21 |
 | phase-6 CLI and reporting | 14 |
 | phase-7 Baselines and CI | 11 |
 | phase-8 GitHub integrations | 12 |
 | phase-9 Developer experience | 13 |
 | phase-10 Advanced analysis and AI | 10 |
 | phase-11 Hardening and release | 15 |
-| **Total** | **168** |
+| **Total** | **170** |
 
-Breakdown by complexity: 41 `difficulty/trivial`, 103 `difficulty/medium`,
-24 `difficulty/high`.
+Breakdown by complexity: 40 `difficulty/trivial`, 107 `difficulty/medium`,
+23 `difficulty/high`.
 
 Every issue includes problem, why it matters, scope, technical guidance,
 acceptance criteria, tests, security considerations, dependencies, complexity,
-and definition of done. No artificial, duplicate, or closed issues were created;
-the count reflects real engineering decomposition.
+definition of done, and wave contribution guidelines (assignment, `Closes #`,
+local gate, example commit message). No artificial, duplicate, or padding issues
+were created; three oversized umbrellas were split into cycle-sized issues and
+closed with links to their children.
+
+## Wave readiness
+
+- Every open issue carries a `difficulty/*` label mapping to wave points
+  (trivial 100 / medium 150 / high 200).
+- Issue bodies include assignment and PR conventions via
+  `tools/wave_guidelines.py`; existing issues were backfilled with
+  `tools/apply_wave_guidelines.py`.
+- Maintainer review commitments (48h response, 72h review decision) are
+  documented in [`docs/WAVE.md`](WAVE.md) and [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+- `good-first-issue` items are available for new contributors.
 
 ## Next task
 

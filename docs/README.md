@@ -20,6 +20,7 @@ Start here.
 ## Contributing
 
 - [Contributing](../CONTRIBUTING.md)
+- [Contributing through Drips Wave](WAVE.md)
 - [Development Setup](development/setup.md)
 - [Testing](development/testing.md)
 - [Benchmarks](development/benchmarks.md)
