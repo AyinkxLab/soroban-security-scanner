@@ -1,6 +1,6 @@
 //! Project loading: discovery, manifest intelligence, and source parsing.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::discovery::{self, DiscoveryOptions};
 use crate::error::ScanError;
@@ -64,6 +64,42 @@ pub fn load(root: &Path, opts: &DiscoveryOptions) -> Result<LoadedProject, ScanE
 /// Loads only project metadata (no parsed sources).
 pub fn load_project(root: &Path, opts: &DiscoveryOptions) -> Result<Project, ScanError> {
     load(root, opts).map(|loaded| loaded.project)
+}
+
+/// Loads a specific set of source files without full directory discovery.
+///
+/// Used when scanning individual files. The root manifest, if present, is
+/// consulted for Soroban dependency evidence.
+pub fn load_files(root: &Path, files: &[PathBuf]) -> Result<LoadedProject, ScanError> {
+    let mut manifests = Vec::new();
+    let mut diagnostics = Vec::new();
+
+    let root_manifest = root.join("Cargo.toml");
+    if root_manifest.is_file() {
+        match manifest::load_manifest(&root_manifest) {
+            Ok(manifest) => manifests.push(manifest),
+            Err(err) => diagnostics.push(Diagnostic::warning(
+                format!("skipping unreadable manifest: {err}"),
+                Some(root_manifest),
+            )),
+        }
+    }
+
+    let (sources, source_diagnostics) = source::load_sources(files, &manifests, root);
+    diagnostics.extend(source_diagnostics);
+
+    let soroban = soroban::analyze_manifests(&manifests);
+    let mut project = Project {
+        root: root.to_path_buf(),
+        kind: soroban::classify(&soroban),
+        manifests,
+        soroban,
+        source_files: files.len(),
+        diagnostics,
+    };
+    source::apply_source_evidence(&mut project, &sources);
+
+    Ok(LoadedProject { project, sources })
 }
 
 #[cfg(test)]

@@ -10,7 +10,7 @@ without ambiguity.
 
 **Default branch:** `main`
 
-**Current phase:** Phase 6 — CLI and Reporting
+**Current phase:** Phase 7 — Baselines, Incremental Scanning and CI
 
 ---
 
@@ -23,8 +23,8 @@ without ambiguity.
 | 3 | Security Analysis Engine | Complete |
 | 4 | Initial Soroban Security Detectors | Complete |
 | 5 | Rule Quality and Research Infrastructure | Complete |
-| 6 | CLI and Reporting | In progress |
-| 7 | Baselines, Incremental Scanning and CI | Not started |
+| 6 | CLI and Reporting | Complete |
+| 7 | Baselines, Incremental Scanning and CI | In progress |
 | 8 | GitHub and Developer Integrations | Not started |
 | 9 | Developer Experience | Not started |
 | 10 | Advanced Analysis and Optional AI | Not started |
@@ -124,6 +124,22 @@ Supporting work:
 - [x] Rule template (`docs/rules/TEMPLATE.md`) and contributor guide
       (`docs/contributors/writing-rules.md`).
 
+### Phase 6 — CLI and Reporting (complete)
+
+- [x] Reporting layer in core: terminal (full + compact), JSON, SARIF 2.1.0, and
+      Markdown renderers, with tests validating structure.
+- [x] `scan` command: directory or single-file scanning, format selection,
+      file output, min severity/confidence, excludes, rule enable/disable,
+      `--fail-on` threshold, quiet/verbose.
+- [x] `rules` command with category and severity filters.
+- [x] `explain <RULE-ID>` command (terminal/JSON/Markdown).
+- [x] `init` command writing a documented config template.
+- [x] `config show` and `config validate` commands.
+- [x] Strict config loading with CLI override support and unknown-rule detection.
+- [x] Stable, documented exit codes (0/1/2/3).
+- [x] [`docs/cli.md`](cli.md) reference and README usage update.
+- [x] 10 black-box CLI integration tests.
+
 ---
 
 ## Verified environment
@@ -135,9 +151,10 @@ Supporting work:
 
 ## Test summary
 
-- Unit tests: 91
-- Integration tests: 18 (corpus, rule quality, adversarial, project detection)
-- Total: 109 (all passing)
+- Unit tests: 96
+- Integration tests: 28 (CLI 10, corpus 3, rule quality 5, adversarial 6,
+  project detection 4)
+- Total: 124 (all passing)
 
 ## Performance
 
@@ -146,9 +163,11 @@ Release throughput on a developer machine: ~2,500-2,800 entry points/s
 
 ## Known limitations
 
-- The CLI exposes only `version`; reporting is implemented in Phase 6.
 - Detectors are syntactic; no type resolution or cross-function data flow.
 - SS-002, SS-003, SS-006, SS-007 are heuristic and low/medium confidence.
+- No baseline/incremental scanning yet (Phase 7).
+- SARIF output is validated structurally but has not yet been exercised through
+  GitHub code scanning.
 
 ## Architecture decisions
 
@@ -156,5 +175,5 @@ Release throughput on a developer machine: ~2,500-2,800 entry points/s
 
 ## Next task
 
-Phase 6: production CLI (`scan`, `rules`, `explain`, `version`, `config`, `init`),
-terminal/JSON/SARIF/Markdown reporting, and documented exit codes.
+Phase 7: baseline files and comparison, incremental scanning, GitHub Actions
+workflow, SARIF upload, and CI failure thresholds.
