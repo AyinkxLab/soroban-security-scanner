@@ -16,7 +16,12 @@
 //! * **AI-optional** — the deterministic engine is authoritative. Any future AI
 //!   assistance is advisory only.
 
+pub mod discovery;
 pub mod error;
+pub mod manifest;
+pub mod model;
+pub mod project;
+pub mod soroban;
 
 /// Crate version, sourced from Cargo at compile time.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
