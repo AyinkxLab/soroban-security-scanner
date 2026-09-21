@@ -44,6 +44,7 @@ deterministic rule engine, and CI-friendly machine-readable output (JSON, SARIF)
 - Baselines and incremental scanning (`--baseline`, `--write-baseline`,
   `--new-only`, `--incremental`).
 - GitHub Actions security-scan workflow with SARIF upload.
+- Composite GitHub Action and changed-file pull-request scanning.
 
 ## Non-goals
 

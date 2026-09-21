@@ -10,7 +10,7 @@ without ambiguity.
 
 **Default branch:** `main`
 
-**Current phase:** Phase 8 — GitHub and Developer Integrations
+**Current phase:** Phase 9 — Developer Experience
 
 ---
 
@@ -25,8 +25,8 @@ without ambiguity.
 | 5 | Rule Quality and Research Infrastructure | Complete |
 | 6 | CLI and Reporting | Complete |
 | 7 | Baselines, Incremental Scanning and CI | Complete |
-| 8 | GitHub and Developer Integrations | In progress |
-| 9 | Developer Experience | Not started |
+| 8 | GitHub and Developer Integrations | Complete |
+| 9 | Developer Experience | In progress |
 | 10 | Advanced Analysis and Optional AI | Not started |
 | 11 | Production Hardening, Documentation and Release | Not started |
 
@@ -157,6 +157,20 @@ Supporting work:
 - [x] [`docs/baselines.md`](baselines.md) and CLI reference updates.
 - [x] Baseline CLI integration tests.
 
+### Phase 8 — GitHub and Developer Integrations (complete)
+
+- [x] Composite GitHub Action (`action.yml`) with inputs for path, format,
+      output, fail-on, baseline, files-from, and extra args.
+- [x] `--files-from` CLI option for changed-file analysis, with traversal
+      rejection.
+- [x] `pr-scan.yml` workflow: changed-file analysis, high/critical annotations,
+      SARIF generation, guarded code-scanning upload, and opt-in PR comments.
+- [x] SARIF upload compatibility exercised structurally; code-scanning upload
+      guarded for fork pull requests.
+- [x] Documented permissions, fork-PR safety, baseline synchronization, and an
+      opt-in issue-creation pattern in [`docs/github-integration.md`](github-integration.md).
+- [x] CLI integration tests for `--files-from` and traversal rejection.
+
 ---
 
 ## Verified environment
@@ -169,9 +183,17 @@ Supporting work:
 ## Test summary
 
 - Unit tests: 102
-- Integration tests: 30 (CLI 12, corpus 3, rule quality 5, adversarial 6,
+- Integration tests: 32 (CLI 14, corpus 3, rule quality 5, adversarial 6,
   project detection 4)
-- Total: 132 (all passing)
+- Total: 134 (all passing)
+
+## CI status
+
+- GitHub Actions `CI` workflow has passed on every push (format, clippy, tests
+  on Linux/Windows/macOS, and `cargo-deny`).
+- GitHub Actions `Security Scan` workflow passed, including SARIF upload to
+  GitHub code scanning.
+- `PR Security Scan` is authored and will run on the next pull request.
 
 ## Performance
 
@@ -182,11 +204,9 @@ Release throughput on a developer machine: ~2,500-2,800 entry points/s
 
 - Detectors are syntactic; no type resolution or cross-function data flow.
 - SS-002, SS-003, SS-006, SS-007 are heuristic and low/medium confidence.
-- The GitHub `security-scan.yml` workflow has been authored and the underlying
-  CLI commands tested locally, but the workflow itself has not yet executed on
-  GitHub Actions.
-- SARIF output is validated structurally but has not been exercised through
-  GitHub code scanning.
+- The `PR Security Scan` workflow has not yet run (no pull request has been
+  opened); its underlying commands are covered by local tests.
+- Only seven detectors exist; the roadmap covers many more.
 
 ## Architecture decisions
 
@@ -194,5 +214,5 @@ Release throughput on a developer machine: ~2,500-2,800 entry points/s
 
 ## Next task
 
-Phase 8: GitHub Action packaging, pull-request/changed-file analysis, PR
-annotations, and documented GitHub permissions.
+Phase 9: developer experience — interactive explanations, richer reports,
+configuration generator, examples, and the full developer documentation set.

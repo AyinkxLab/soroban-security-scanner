@@ -1,0 +1,87 @@
+name: "Soroban Security Scanner"
+description: "Deterministic security analysis for Stellar Soroban smart contracts and Soroban-related Rust projects."
+author: "AyinkxLab"
+
+branding:
+  icon: "shield"
+  color: "purple"
+
+inputs:
+  path:
+    description: "Directory or file to scan."
+    required: false
+    default: "."
+  format:
+    description: "Output format: terminal, json, sarif, or markdown."
+    required: false
+    default: "sarif"
+  output:
+    description: "File to write the report to when format is machine-readable."
+    required: false
+    default: "soroban-scan-results.sarif"
+  fail-on:
+    description: "Failure threshold: none, info, low, medium, high, or critical."
+    required: false
+    default: "high"
+  baseline:
+    description: "Optional baseline file; when set, only new findings fail the gate."
+    required: false
+    default: ""
+  files-from:
+    description: "Optional file containing a newline-separated list of files to scan."
+    required: false
+    default: ""
+  args:
+    description: "Additional arguments passed to `soroban-scan scan`."
+    required: false
+    default: ""
+
+outputs:
+  exit-code:
+    description: "Scanner exit code (0 = no failing findings, 1 = failing findings)."
+    value: ${{ steps.scan.outputs.exit-code }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build scanner
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: cargo build --release -p soroban-scan-cli
+
+    - name: Run scan
+      id: scan
+      shell: bash
+      env:
+        SCAN_PATH: ${{ inputs.path }}
+        SCAN_FORMAT: ${{ inputs.format }}
+        SCAN_OUTPUT: ${{ inputs.output }}
+        SCAN_FAIL_ON: ${{ inputs.fail-on }}
+        SCAN_BASELINE: ${{ inputs.baseline }}
+        SCAN_FILES_FROM: ${{ inputs.files-from }}
+        SCAN_ARGS: ${{ inputs.args }}
+      run: |
+        set -uo pipefail
+        scanner="${{ github.action_path }}/target/release/soroban-scan"
+
+        extra=()
+        if [ -n "${SCAN_OUTPUT}" ]; then
+          extra+=(--output "${SCAN_OUTPUT}")
+        fi
+        if [ -n "${SCAN_BASELINE}" ]; then
+          extra+=(--baseline "${SCAN_BASELINE}")
+        fi
+        if [ -n "${SCAN_FILES_FROM}" ]; then
+          extra+=(--files-from "${SCAN_FILES_FROM}")
+        fi
+
+        # SCAN_ARGS is intentionally word-split to allow multiple flags.
+        # shellcheck disable=SC2086
+        "${scanner}" scan "${SCAN_PATH}" \
+          --format "${SCAN_FORMAT}" \
+          --fail-on "${SCAN_FAIL_ON}" \
+          ${SCAN_ARGS} \
+          "${extra[@]}"
+        code=$?
+        echo "exit-code=${code}" >> "$GITHUB_OUTPUT"
+        exit "${code}"

@@ -116,6 +116,8 @@ struct Cli {
 }
 
 #[derive(Debug, Subcommand)]
+// CLI argument structs differ in size by design; boxing them would hurt readability.
+#[allow(clippy::large_enum_variant)]
 enum Command {
     /// Scan a directory or file for security findings.
     Scan(ScanArgs),
@@ -160,6 +162,10 @@ struct ScanArgs {
     /// Configuration file to use.
     #[arg(long, value_name = "FILE")]
     config: Option<PathBuf>,
+
+    /// Read a newline-separated list of files to scan, relative to PATH.
+    #[arg(long, value_name = "FILE")]
+    files_from: Option<PathBuf>,
 
     /// Disable a rule by id. Repeatable.
     #[arg(long = "disable", value_name = "RULE")]
@@ -330,7 +336,16 @@ fn run_scan(args: ScanArgs, registry: &RuleRegistry) -> CliResult<u8> {
 
     validate_rule_ids(&config, registry)?;
 
-    let mut outcome = if args.path.is_file() {
+    let mut outcome = if let Some(list) = &args.files_from {
+        if args.path.is_file() {
+            return Err(CliError::Usage(
+                "--files-from requires PATH to be a directory".to_string(),
+            ));
+        }
+        let files = read_file_list(list, &args.path)?;
+        let loaded = project::load_files(&args.path, &files).map_err(runtime)?;
+        engine::scan(&loaded, registry, &config)
+    } else if args.path.is_file() {
         let file = args.path.clone();
         let root = file
             .parent()
@@ -540,6 +555,37 @@ fn load_config(explicit: Option<&Path>, root: &Path) -> CliResult<ScanConfig> {
     }
 
     Ok(ScanConfig::default())
+}
+
+fn read_file_list(list: &Path, root: &Path) -> CliResult<Vec<PathBuf>> {
+    let text = std::fs::read_to_string(list)
+        .map_err(|e| CliError::Runtime(format!("cannot read file list {}: {e}", list.display())))?;
+    let mut files = Vec::new();
+    for raw in text.lines() {
+        let line = raw.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let candidate = Path::new(line);
+        if candidate
+            .components()
+            .any(|component| matches!(component, std::path::Component::ParentDir))
+        {
+            return Err(CliError::Usage(format!(
+                "file list entry escapes the scan root: {line}"
+            )));
+        }
+        let resolved = if candidate.is_absolute() {
+            candidate.to_path_buf()
+        } else {
+            root.join(candidate)
+        };
+        files.push(resolved);
+    }
+    if files.is_empty() {
+        return Err(CliError::Usage("file list is empty".to_string()));
+    }
+    Ok(files)
 }
 
 fn validate_rule_ids(config: &ScanConfig, registry: &RuleRegistry) -> CliResult<()> {

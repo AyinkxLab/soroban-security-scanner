@@ -34,6 +34,7 @@ soroban-scan scan [PATH] [OPTIONS]
 | `--min-confidence <LEVEL>` | Only report findings at or above this confidence. |
 | `--exclude <GLOB>` | Exclude a glob relative to the scan root (repeatable). |
 | `--config <FILE>` | Use a specific configuration file. |
+| `--files-from <FILE>` | Read a newline-separated list of files to scan (relative to `PATH`). |
 | `--disable <RULE>` | Disable a rule by id (repeatable). |
 | `--rule <RULE>` | Run only the given rule(s) (repeatable). |
 | `--fail-on <none\|info\|low\|medium\|high\|critical>` | Failure threshold (default `high`). |

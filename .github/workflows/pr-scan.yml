@@ -1,0 +1,94 @@
+name: PR Security Scan
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-scan-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  changed-files:
+    name: Scan changed files
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build scanner
+        run: cargo build --release -p soroban-scan-cli
+
+      - name: Determine changed Rust files
+        id: changed
+        run: |
+          base="origin/${{ github.base_ref }}"
+          git fetch --no-tags origin "${GITHUB_BASE_REF}" || true
+          git diff --name-only --diff-filter=ACMR "${base}...HEAD" -- '*.rs' \
+            | sed '/^$/d' > changed.txt
+          count=$(wc -l < changed.txt | tr -d ' ')
+          echo "count=${count}" >> "$GITHUB_OUTPUT"
+
+      - name: Scan changed files
+        if: steps.changed.outputs.count != '0'
+        run: |
+          ./target/release/soroban-scan scan . \
+            --files-from changed.txt \
+            --format json \
+            --output results.json \
+            --fail-on none
+
+      - name: Annotate high and critical findings
+        if: steps.changed.outputs.count != '0'
+        run: |
+          jq -r '.findings[]
+            | select(.severity == "high" or .severity == "critical")
+            | "::error file=\(.location.file),line=\(.location.line)::\(.rule_id): \(.title)"' \
+            results.json
+
+      - name: Produce SARIF
+        if: steps.changed.outputs.count != '0'
+        run: |
+          ./target/release/soroban-scan scan . \
+            --files-from changed.txt \
+            --format sarif \
+            --output results.sarif \
+            --fail-on none
+
+      # SARIF upload requires permissions that fork PRs do not have.
+      - name: Upload SARIF to code scanning
+        if: steps.changed.outputs.count != '0' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+          category: soroban-scan-pr
+
+      # Opt-in PR comment. Enable by setting the repository variable
+      # SOROBAN_SCAN_PR_COMMENT to "true". Never runs for forks.
+      - name: Comment summary on PR
+        if: steps.changed.outputs.count != '0' && vars.SOROBAN_SCAN_PR_COMMENT == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          total=$(jq '.findings | length' results.json)
+          {
+            echo "### Soroban Security Scan"
+            echo ""
+            echo "Changed Rust files scanned: $(cat changed.txt | wc -l | tr -d ' ')"
+            echo ""
+            echo "Findings: ${total}"
+            echo ""
+            jq -r '.findings[] | "- `\(.rule_id)` **\(.severity)** `\(.location.file):\(.location.line)` — \(.title)"' results.json | head -50
+          } > comment.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file comment.md

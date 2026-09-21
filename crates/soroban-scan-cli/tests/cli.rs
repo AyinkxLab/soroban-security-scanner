@@ -13,6 +13,10 @@ fn fixture(relative: &str) -> PathBuf {
         .join(relative)
 }
 
+fn repo_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
+}
+
 struct Output {
     stdout: String,
     stderr: String,
@@ -211,6 +215,50 @@ fn baseline_from_clean_project_flags_all_findings_as_new() {
         "--quiet",
     ]);
     assert_eq!(out.code, 1);
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn files_from_scans_only_listed_files() {
+    let dir = std::env::temp_dir().join(format!("soroban-scan-cli-ff-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let list = dir.join("changed.txt");
+    std::fs::write(&list, "fixtures/corpus/SS-001/positive.rs\n").unwrap();
+
+    let out = run(&[
+        "scan",
+        repo_root().to_str().unwrap(),
+        "--files-from",
+        list.to_str().unwrap(),
+        "--quiet",
+        "--fail-on",
+        "high",
+    ]);
+    assert_eq!(out.code, 1);
+    assert!(out.stdout.contains("positive.rs"));
+    assert!(!out.stdout.contains("negative.rs"));
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn files_from_rejects_path_traversal() {
+    let dir = std::env::temp_dir().join(format!("soroban-scan-cli-ff2-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let list = dir.join("changed.txt");
+    std::fs::write(&list, "../outside.rs\n").unwrap();
+
+    let out = run(&[
+        "scan",
+        repo_root().to_str().unwrap(),
+        "--files-from",
+        list.to_str().unwrap(),
+    ]);
+    assert_eq!(out.code, 2);
+    assert!(out.stderr.contains("escapes the scan root"));
 
     let _ = std::fs::remove_dir_all(&dir);
 }
