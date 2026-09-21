@@ -10,7 +10,7 @@ without ambiguity.
 
 **Default branch:** `main`
 
-**Current phase:** Phase 3 — Security Analysis Engine
+**Current phase:** Phase 4 — Initial Soroban Security Detectors
 
 ---
 
@@ -20,8 +20,8 @@ without ambiguity.
 | ----- | ----- | ------ |
 | 1 | Foundation and Architecture | Complete |
 | 2 | Source Parsing and Project Intelligence | Complete |
-| 3 | Security Analysis Engine | In progress |
-| 4 | Initial Soroban Security Detectors | Not started |
+| 3 | Security Analysis Engine | Complete |
+| 4 | Initial Soroban Security Detectors | In progress |
 | 5 | Rule Quality and Research Infrastructure | Not started |
 | 6 | CLI and Reporting | Not started |
 | 7 | Baselines, Incremental Scanning and CI | Not started |
@@ -63,6 +63,24 @@ without ambiguity.
 - [x] Fixtures: `generic-rust`, `soroban-likely`, `soroban-confirmed`.
 - [x] Integration test asserting deterministic metadata output.
 
+### Phase 3 — Security Analysis Engine (complete)
+
+- [x] Severity model (`info`..`critical`) with stable ordering and parsing.
+- [x] Confidence model (`low`, `medium`, `high`).
+- [x] Category model (authorization, storage, arithmetic, ...).
+- [x] `SourceLocation` and `Finding` models with stable, line-independent
+      fingerprints for baselines.
+- [x] `RuleMetadata` + `Rule` trait; rules observe an immutable context.
+- [x] `RuleRegistry` with id validation and duplicate rejection.
+- [x] `AnalysisContext` exposing project, sources, functions, and contract entry
+      points.
+- [x] `ScanConfig`/`RulesConfig` (enable/disable, severity/confidence overrides,
+      minimum thresholds, excludes) with strict TOML parsing.
+- [x] Engine pipeline: run enabled rules, relativize and validate every location
+      against the scan root and analyzed file set, reject rule-fabricated
+      locations and evidence-less findings, apply overrides and filters,
+      de-duplicate, and sort deterministically.
+
 ---
 
 ## Verified environment
@@ -74,13 +92,14 @@ without ambiguity.
 
 ## Test summary
 
-- Unit tests: 33
+- Unit tests: 57
 - Integration tests: 4
-- Total: 37 (all passing)
+- Total: 61 (all passing)
 
 ## Known limitations
 
-- No security rules or finding output yet.
+- No built-in security detectors yet (registry is empty). The engine is tested
+  with test-only rules.
 - The CLI exposes only `version`.
 - Source parsing is purely syntactic (no type resolution).
 
@@ -90,5 +109,5 @@ without ambiguity.
 
 ## Next task
 
-Phase 3: implement the finding model, rule trait, rule registry, analysis
-context, scanner pipeline, and diagnostics.
+Phase 4: implement the first Soroban security detectors with positive/negative
+fixtures, remediation guidance, and tests.

@@ -16,11 +16,20 @@
 //! * **AI-optional** — the deterministic engine is authoritative. Any future AI
 //!   assistance is advisory only.
 
+pub mod category;
+pub mod confidence;
+pub mod config;
+pub mod context;
 pub mod discovery;
+pub mod engine;
 pub mod error;
+pub mod finding;
 pub mod manifest;
 pub mod model;
 pub mod project;
+pub mod registry;
+pub mod rule;
+pub mod severity;
 pub mod soroban;
 pub mod source;
 
