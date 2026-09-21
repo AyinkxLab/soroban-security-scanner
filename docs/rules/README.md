@@ -47,6 +47,21 @@ heuristically is reported as `severity: high, confidence: low`, never
 `token`, `storage`, `arithmetic`, `error-handling`, `events`, `resource-usage`,
 `configuration`, `dependencies`, `unsafe`.
 
+## Built-in detectors
+
+| Rule | Title | Severity | Confidence | Category |
+| ---- | ----- | -------- | ---------- | -------- |
+| [SS-001](detectors/SS-001.md) | State-changing entry point without caller authorization | high | medium | authorization |
+| [SS-002](detectors/SS-002.md) | Cross-contract call without caller authorization | high | low | cross-contract |
+| [SS-003](detectors/SS-003.md) | Unbounded storage iteration in an entry point | medium | low | resource-usage |
+| [SS-004](detectors/SS-004.md) | Panic-prone construct in a contract entry point | low | medium | error-handling |
+| [SS-005](detectors/SS-005.md) | Unsafe code in a Soroban contract | medium | high | unsafe |
+| [SS-006](detectors/SS-006.md) | Persistent storage write without TTL management | low | low | storage |
+| [SS-007](detectors/SS-007.md) | Hardcoded Stellar account or contract address | medium | low | configuration |
+
+Each detector has a positive and negative fixture under
+`fixtures/corpus/<RULE-ID>/`.
+
 ## Anatomy of a finding
 
 - `rule_id`, `title`, `description`

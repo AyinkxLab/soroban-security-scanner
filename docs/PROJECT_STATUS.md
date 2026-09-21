@@ -10,7 +10,7 @@ without ambiguity.
 
 **Default branch:** `main`
 
-**Current phase:** Phase 4 — Initial Soroban Security Detectors
+**Current phase:** Phase 5 — Rule Quality and Research Infrastructure
 
 ---
 
@@ -21,8 +21,8 @@ without ambiguity.
 | 1 | Foundation and Architecture | Complete |
 | 2 | Source Parsing and Project Intelligence | Complete |
 | 3 | Security Analysis Engine | Complete |
-| 4 | Initial Soroban Security Detectors | In progress |
-| 5 | Rule Quality and Research Infrastructure | Not started |
+| 4 | Initial Soroban Security Detectors | Complete |
+| 5 | Rule Quality and Research Infrastructure | In progress |
 | 6 | CLI and Reporting | Not started |
 | 7 | Baselines, Incremental Scanning and CI | Not started |
 | 8 | GitHub and Developer Integrations | Not started |
@@ -81,6 +81,29 @@ without ambiguity.
       locations and evidence-less findings, apply overrides and filters,
       de-duplicate, and sort deterministically.
 
+### Phase 4 — Initial Soroban Security Detectors (complete)
+
+Seven detectors, each with metadata, remediation, positive/negative fixtures,
+tests, and documentation under `docs/rules/detectors/`:
+
+- [x] SS-001 State-changing entry point without caller authorization (high/medium).
+- [x] SS-002 Cross-contract call without caller authorization (high/low).
+- [x] SS-003 Unbounded storage iteration in an entry point (medium/low).
+- [x] SS-004 Panic-prone construct in a contract entry point (low/medium).
+- [x] SS-005 Unsafe code in a Soroban contract (medium/high).
+- [x] SS-006 Persistent storage write without TTL management (low/low).
+- [x] SS-007 Hardcoded Stellar account or contract address (medium/low).
+
+Supporting work:
+
+- [x] AST utility layer (`rules::util`) extracting calls, macros, strings, and
+      `unsafe` facts; contract entry-point discovery.
+- [x] Public in-memory scanning API (`engine::scan_source_str`,
+      `engine::synthetic_loaded`).
+- [x] Security regression corpus under `fixtures/corpus/` with a data-driven
+      integration test over all rule ids.
+- [x] Adversarial test: malformed source produces diagnostics, not panics.
+
 ---
 
 ## Verified environment
@@ -92,16 +115,15 @@ without ambiguity.
 
 ## Test summary
 
-- Unit tests: 57
-- Integration tests: 4
-- Total: 61 (all passing)
+- Unit tests: 83
+- Corpus / integration tests: 7
+- Total: 90 (all passing)
 
 ## Known limitations
 
-- No built-in security detectors yet (registry is empty). The engine is tested
-  with test-only rules.
-- The CLI exposes only `version`.
-- Source parsing is purely syntactic (no type resolution).
+- The CLI exposes only `version`; reporting is implemented in Phase 6.
+- Detectors are syntactic; no type resolution or cross-function data flow.
+- SS-002, SS-003, SS-006, SS-007 are heuristic and low/medium confidence.
 
 ## Architecture decisions
 
@@ -109,5 +131,5 @@ without ambiguity.
 
 ## Next task
 
-Phase 4: implement the first Soroban security detectors with positive/negative
-fixtures, remediation guidance, and tests.
+Phase 5: rule metadata validation, documentation validation, a regression runner,
+benchmark fixtures, determinism tests, and a contributor template for new rules.

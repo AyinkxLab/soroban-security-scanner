@@ -57,7 +57,7 @@ impl RuleRegistry {
 
     /// Registers built-in rules. Populated as detectors are implemented.
     fn register_defaults(&mut self) -> Result<(), RegistryError> {
-        Ok(())
+        crate::rules::register_all(self)
     }
 
     /// Number of registered rules.

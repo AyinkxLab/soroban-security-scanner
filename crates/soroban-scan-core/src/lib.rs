@@ -29,6 +29,7 @@ pub mod model;
 pub mod project;
 pub mod registry;
 pub mod rule;
+pub mod rules;
 pub mod severity;
 pub mod soroban;
 pub mod source;

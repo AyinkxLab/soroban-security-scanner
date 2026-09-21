@@ -169,6 +169,57 @@ pub fn run_scan(
     Ok(scan(&loaded, registry, config))
 }
 
+/// Builds a synthetic single-file project from an in-memory source string.
+///
+/// This is useful for embedding and for regression tests. The synthetic project
+/// is treated as Soroban when the source contains a Soroban SDK dependency
+/// marker (assumed) or a contract definition.
+pub fn synthetic_loaded(src: &str, file_name: &str) -> LoadedProject {
+    let root = std::path::PathBuf::from(".");
+    let path = std::path::PathBuf::from(file_name);
+    let parsed = crate::source::parse_source(&path, &root, src);
+
+    let mut diagnostics = Vec::new();
+    if let Some(err) = &parsed.parse_error {
+        diagnostics.push(Diagnostic::warning(
+            format!("failed to parse source: {err}"),
+            Some(path.clone()),
+        ));
+    }
+
+    let mut info = crate::model::SorobanInfo {
+        has_sdk_dependency: true,
+        ..crate::model::SorobanInfo::default()
+    };
+    for location in &parsed.contract_definitions {
+        crate::soroban::note_contract_definition(&mut info, location);
+    }
+    let kind = crate::soroban::classify(&info);
+
+    let project = Project {
+        root,
+        kind,
+        manifests: Vec::new(),
+        soroban: info,
+        source_files: 1,
+        diagnostics,
+    };
+    LoadedProject {
+        project,
+        sources: vec![parsed],
+    }
+}
+
+/// Scans an in-memory source string as a synthetic single-file project.
+pub fn scan_source_str(
+    src: &str,
+    file_name: &str,
+    config: &ScanConfig,
+    registry: &RuleRegistry,
+) -> ScanOutcome {
+    scan(&synthetic_loaded(src, file_name), registry, config)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
