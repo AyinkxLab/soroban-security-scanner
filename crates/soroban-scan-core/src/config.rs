@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::ai::AiConfig;
 use crate::confidence::Confidence;
 use crate::severity::Severity;
 
@@ -51,6 +52,8 @@ pub struct ScanConfig {
     pub follow_symlinks: bool,
     /// Rule selection and overrides.
     pub rules: RulesConfig,
+    /// Optional assistance layer configuration (disabled by default).
+    pub ai: AiConfig,
 }
 
 impl Default for ScanConfig {
@@ -61,6 +64,7 @@ impl Default for ScanConfig {
             exclude: Vec::new(),
             follow_symlinks: false,
             rules: RulesConfig::default(),
+            ai: AiConfig::default(),
         }
     }
 }

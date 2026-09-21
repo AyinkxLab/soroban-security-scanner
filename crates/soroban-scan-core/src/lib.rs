@@ -16,6 +16,7 @@
 //! * **AI-optional** — the deterministic engine is authoritative. Any future AI
 //!   assistance is advisory only.
 
+pub mod ai;
 pub mod baseline;
 pub mod category;
 pub mod confidence;

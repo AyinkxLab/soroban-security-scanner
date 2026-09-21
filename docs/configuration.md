@@ -44,6 +44,13 @@ severity_overrides = { "SS-007" = "low" }
 
 # Per-rule confidence overrides
 confidence_overrides = { }
+
+[ai]
+# Optional assistance layer. Disabled by default; the deterministic scanner is
+# authoritative. See docs/ai.md.
+enabled = false
+# provider = "openai"
+# model = "..."
 ```
 
 ### Fields
@@ -58,6 +65,9 @@ confidence_overrides = { }
 | `rules.enabled` | array of ids | `[]` | If non-empty, the only rules that run. |
 | `rules.severity_overrides` | map id→severity | `{}` | Replace a rule's default severity. |
 | `rules.confidence_overrides` | map id→confidence | `{}` | Replace a rule's default confidence. |
+| `ai.enabled` | bool | `false` | Enable the optional assistance layer (fails closed without a provider). |
+| `ai.provider` | string | *(none)* | Provider name; none is bundled. |
+| `ai.model` | string | *(none)* | Model identifier. |
 
 Unknown fields are rejected, as are references to unknown rule ids.
 

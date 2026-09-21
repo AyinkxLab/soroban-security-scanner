@@ -14,6 +14,7 @@ Start here.
 - [Rules](rules/README.md) — severity, confidence, and the built-in detectors.
 - [Baselines](baselines.md) — track new vs. known findings.
 - [GitHub Integration](github-integration.md) — Action, SARIF, PR scanning.
+- [Optional AI Assistance](ai.md) — off by default, never authoritative.
 - [Troubleshooting](troubleshooting.md) — common problems.
 
 ## Contributing

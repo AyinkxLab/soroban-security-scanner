@@ -11,6 +11,7 @@ use std::process::ExitCode;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
+use soroban_scan_core::ai::{self, Assistant};
 use soroban_scan_core::baseline::{self, Baseline};
 use soroban_scan_core::category::Category;
 use soroban_scan_core::confidence::Confidence;
@@ -52,6 +53,13 @@ enabled = []
 # severity_overrides = {}
 # Per-rule confidence overrides, for example: { "SS-007" = "low" }
 # confidence_overrides = {}
+
+[ai]
+# Optional assistance layer. Disabled by default.
+# The deterministic scanner is authoritative; assistance never changes findings.
+enabled = false
+# provider = "none"
+# model = "none"
 "#;
 
 /// Argument value for `--format`.
@@ -194,6 +202,10 @@ struct ScanArgs {
     /// Incremental scan: do not report resolved findings.
     #[arg(long, requires = "baseline")]
     incremental: bool,
+
+    /// After the report, print offline guidance for the findings (labeled).
+    #[arg(long)]
+    guidance: bool,
 
     /// Suppress the report header and diagnostics.
     #[arg(long, short = 'q', conflicts_with = "verbose")]
@@ -453,6 +465,14 @@ fn run_scan(args: ScanArgs, registry: &RuleRegistry) -> CliResult<u8> {
         for diagnostic in &outcome.diagnostics {
             eprintln!("diagnostic: {}", diagnostic.message);
         }
+    }
+
+    if args.guidance {
+        let assistant = ai::assistant(&config.ai).map_err(|e| {
+            CliError::Usage(format!("assistance is unavailable: {e} (see docs/ai.md)"))
+        })?;
+        let explanation = assistant.summarize(&outcome.findings);
+        eprintln!("{}", explanation.render());
     }
 
     Ok(if failed { EXIT_FINDINGS } else { EXIT_SUCCESS })

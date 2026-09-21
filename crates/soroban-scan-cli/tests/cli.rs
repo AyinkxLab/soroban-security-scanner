@@ -259,6 +259,45 @@ fn rules_unknown_category_is_usage_error() {
 }
 
 #[test]
+fn guidance_is_offline_and_labeled() {
+    let out = run(&[
+        "scan",
+        fixture("corpus/SS-001").to_str().unwrap(),
+        "--fail-on",
+        "none",
+        "--quiet",
+        "--guidance",
+    ]);
+    assert_eq!(out.code, 0);
+    assert!(out.stderr.contains("GUIDANCE (offline, rule-based)"));
+    assert!(out.stderr.contains("deterministic findings"));
+}
+
+#[test]
+fn enabling_ai_without_a_provider_fails_closed() {
+    let dir = std::env::temp_dir().join(format!("soroban-scan-cli-ai-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let config = dir.join("ai.toml");
+    std::fs::write(&config, "[ai]\nenabled = true\nprovider = \"openai\"\n").unwrap();
+
+    let out = run(&[
+        "scan",
+        fixture("corpus/SS-001").to_str().unwrap(),
+        "--config",
+        config.to_str().unwrap(),
+        "--fail-on",
+        "none",
+        "--quiet",
+        "--guidance",
+    ]);
+    assert_eq!(out.code, 2);
+    assert!(out.stderr.contains("assistance is unavailable"));
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn files_from_rejects_path_traversal() {
     let dir = std::env::temp_dir().join(format!("soroban-scan-cli-ff2-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);

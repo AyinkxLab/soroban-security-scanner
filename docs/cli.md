@@ -42,6 +42,7 @@ soroban-scan scan [PATH] [OPTIONS]
 | `--write-baseline <FILE>` | Write current findings as a baseline and exit. |
 | `--new-only` | With `--baseline`, report only new findings. |
 | `--incremental` | With `--baseline`, do not report resolved findings. |
+| `--guidance` | Print labeled offline guidance for findings (see [ai.md](ai.md)). |
 | `--quiet`, `-q` | Compact output; suppresses the header. |
 | `--verbose`, `-v` | Include diagnostics. |
 

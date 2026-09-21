@@ -45,6 +45,8 @@ deterministic rule engine, and CI-friendly machine-readable output (JSON, SARIF)
   `--new-only`, `--incremental`).
 - GitHub Actions security-scan workflow with SARIF upload.
 - Composite GitHub Action and changed-file pull-request scanning.
+- Optional, clearly labeled assistance (`--guidance`); off by default and never
+  authoritative.
 
 ## Non-goals
 

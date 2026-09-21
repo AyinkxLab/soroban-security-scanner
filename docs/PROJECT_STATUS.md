@@ -10,7 +10,7 @@ without ambiguity.
 
 **Default branch:** `main`
 
-**Current phase:** Phase 10 — Advanced Analysis and Optional AI
+**Current phase:** Phase 11 — Production Hardening, Documentation and Release
 
 ---
 
@@ -27,8 +27,8 @@ without ambiguity.
 | 7 | Baselines, Incremental Scanning and CI | Complete |
 | 8 | GitHub and Developer Integrations | Complete |
 | 9 | Developer Experience | Complete |
-| 10 | Advanced Analysis and Optional AI | In progress |
-| 11 | Production Hardening, Documentation and Release | Not started |
+| 10 | Advanced Analysis and Optional AI | Complete |
+| 11 | Production Hardening, Documentation and Release | In progress |
 
 ---
 
@@ -184,6 +184,21 @@ Supporting work:
 - [x] Rule template and writing-rules guide (Phase 5).
 - [x] CLI tests for rule search and invalid category.
 
+### Phase 10 — Advanced Analysis and Optional AI (complete)
+
+- [x] Optional assistance layer (`ai` module): `Assistant` trait, `AiConfig`
+      (disabled by default), and a labeled offline `RuleGuidance` assistant that
+      derives text only from existing findings and rule metadata.
+- [x] Fail-closed behavior: enabling assistance without a bundled provider (or
+      naming an unknown provider) errors clearly; the deterministic scan still
+      runs.
+- [x] CLI `--guidance` prints labeled offline guidance to stderr so machine
+      output stays clean.
+- [x] [`docs/ai.md`](ai.md) documents guarantees, the network policy for future
+      providers, and what AI must never do.
+- [x] Config template and configuration reference include the `[ai]` section.
+- [x] Unit and CLI tests for disabled-by-default, fail-closed, and labeling.
+
 ---
 
 ## Verified environment
@@ -195,10 +210,10 @@ Supporting work:
 
 ## Test summary
 
-- Unit tests: 102
-- Integration tests: 34 (CLI 16, corpus 3, rule quality 5, adversarial 6,
+- Unit tests: 107
+- Integration tests: 36 (CLI 18, corpus 3, rule quality 5, adversarial 6,
   project detection 4)
-- Total: 136 (all passing)
+- Total: 143 (all passing)
 
 ## CI status
 
@@ -227,5 +242,5 @@ Release throughput on a developer machine: ~2,500-2,800 entry points/s
 
 ## Next task
 
-Phase 10: optional, clearly labeled AI assistance that is disabled by default,
-requires explicit opt-in, and can never override deterministic findings.
+Phase 11: production hardening, full documentation audit, release process,
+compatibility matrix, dependency and supply-chain audit, and release preparation.
