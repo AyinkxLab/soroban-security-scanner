@@ -50,9 +50,10 @@ rustup toolchain install stable-x86_64-pc-windows-gnu
 rustup override set stable-x86_64-pc-windows-gnu
 ```
 
-## Build fails with an MSRV error
+## Build fails with a toolchain error
 
-The workspace requires Rust `1.74` or newer. Update with `rustup update stable`.
+Use a recent stable Rust toolchain. Update with `rustup update stable`. See
+[Compatibility](compatibility.md) for the support policy.
 
 ## Exit code 1 in CI, but there are no "new" findings
 

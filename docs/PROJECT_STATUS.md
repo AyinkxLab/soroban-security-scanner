@@ -10,7 +10,7 @@ without ambiguity.
 
 **Default branch:** `main`
 
-**Current phase:** Phase 11 — Production Hardening, Documentation and Release
+**Current phase:** Release and Contributor Backlog
 
 ---
 
@@ -28,7 +28,9 @@ without ambiguity.
 | 8 | GitHub and Developer Integrations | Complete |
 | 9 | Developer Experience | Complete |
 | 10 | Advanced Analysis and Optional AI | Complete |
-| 11 | Production Hardening, Documentation and Release | In progress |
+| 11 | Production Hardening, Documentation and Release | Complete |
+
+**Release:** `v0.1.0` (see [`CHANGELOG.md`](../CHANGELOG.md)).
 
 ---
 
@@ -199,6 +201,25 @@ Supporting work:
 - [x] Config template and configuration reference include the `[ai]` section.
 - [x] Unit and CLI tests for disabled-by-default, fail-closed, and labeling.
 
+### Phase 11 — Production Hardening, Documentation and Release (complete)
+
+- [x] Corrected the Rust support policy: removed an unverifiable `rust-version`
+      pin and documented the real policy in [`compatibility.md`](compatibility.md).
+- [x] Compatibility matrix: Rust, OS, Soroban SDK, machine-readable formats,
+      exit codes.
+- [x] Release process ([`development/release.md`](development/release.md)) and
+      upgrade guidance ([`development/upgrading.md`](development/upgrading.md)).
+- [x] Production-readiness audit ([`development/audit.md`](development/audit.md))
+      with honest Verified/Partial/Planned statuses.
+- [x] Documentation link checker (`tools/check_docs.py`); 42 Markdown files
+      checked, no broken relative links.
+- [x] Full local gate: fmt, clippy (`-D warnings`), 143 tests, release build,
+      CLI smoke tests, SARIF generation.
+- [x] CI verified green on GitHub (Format, Clippy, Test on Linux/Windows/macOS,
+      Dependency audit) and the Security Scan workflow (with SARIF upload).
+- [x] Workflows updated to `actions/checkout@v5`.
+- [x] Tagged `v0.1.0` and published a GitHub release.
+
 ---
 
 ## Verified environment
@@ -242,5 +263,5 @@ Release throughput on a developer machine: ~2,500-2,800 entry points/s
 
 ## Next task
 
-Phase 11: production hardening, full documentation audit, release process,
-compatibility matrix, dependency and supply-chain audit, and release preparation.
+Create the contributor backlog of meaningful issues derived from real remaining
+work (see `docs/contributors/backlog/`).

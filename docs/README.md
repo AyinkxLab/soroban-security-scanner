@@ -31,6 +31,13 @@ Start here.
 
 - [Architecture](architecture/overview.md)
 - [Architecture Decision Records](architecture/adr/)
+- [Compatibility](compatibility.md)
 - [Security Model](security/security-model.md)
 - [Threat Model](security/threat-model.md)
 - [Project Status](PROJECT_STATUS.md)
+
+## Maintainers
+
+- [Release Process](development/release.md)
+- [Upgrading](development/upgrading.md)
+- [Production Readiness Audit](development/audit.md)

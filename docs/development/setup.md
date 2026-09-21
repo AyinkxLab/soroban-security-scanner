@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- **Rust** (stable). The workspace declares `rust-version = "1.74"`.
+- **Rust** (recent stable; CI builds and tests on stable).
 - **Git**.
 - Optional: **Python 3.10+** for supporting tooling under `tools/`.
 

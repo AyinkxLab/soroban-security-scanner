@@ -3,7 +3,7 @@
 ## Supported platforms
 
 - Linux, macOS, and Windows.
-- Rust stable. The workspace declares `rust-version = "1.74"`.
+- A recent stable Rust toolchain. CI builds and tests on stable.
 
 ## From source
 
