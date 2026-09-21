@@ -4,6 +4,10 @@ members = [
     "crates/soroban-scan-core",
     "crates/soroban-scan-cli",
 ]
+exclude = [
+    "examples/*",
+    "fixtures/*",
+]
 
 [workspace.package]
 version = "0.1.0"

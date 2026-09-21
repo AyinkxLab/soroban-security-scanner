@@ -14,6 +14,10 @@ use crate::severity::Severity;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SourceLocation {
     /// Source file, relative to the scan root where possible.
+    ///
+    /// Serialized with forward slashes so machine-readable output is identical
+    /// across operating systems.
+    #[serde(serialize_with = "serialize_path")]
     pub file: PathBuf,
     /// 1-based line number.
     pub line: usize,
@@ -142,6 +146,14 @@ impl Finding {
     }
 }
 
+/// Serializes a path with forward slashes for stable cross-platform output.
+fn serialize_path<S>(path: &Path, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    serializer.serialize_str(&path.to_string_lossy().replace('\\', "/"))
+}
+
 /// Normalizes evidence text so fingerprints are whitespace-insensitive.
 pub fn normalize_evidence(evidence: &str) -> String {
     evidence.split_whitespace().collect::<Vec<_>>().join(" ")
@@ -191,5 +203,13 @@ mod tests {
         assert_eq!(loc.display_label(), "src/lib.rs:10:5");
         let loc = SourceLocation::new("src/lib.rs", 10);
         assert_eq!(loc.display_label(), "src/lib.rs:10");
+    }
+
+    #[test]
+    fn paths_serialize_with_forward_slashes() {
+        let loc = SourceLocation::new("src\\nested\\lib.rs", 1);
+        let json = serde_json::to_string(&loc).unwrap();
+        assert!(json.contains("src/nested/lib.rs"), "got: {json}");
+        assert!(!json.contains('\\'), "got: {json}");
     }
 }

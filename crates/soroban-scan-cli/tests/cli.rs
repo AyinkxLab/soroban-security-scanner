@@ -138,3 +138,79 @@ fn init_creates_then_refuses_to_overwrite() {
 
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn baseline_suppresses_existing_findings() {
+    let dir = std::env::temp_dir().join(format!("soroban-scan-cli-bl-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let baseline = dir.join("baseline.json");
+
+    let write = run(&[
+        "scan",
+        fixture("corpus/SS-001").to_str().unwrap(),
+        "--write-baseline",
+        baseline.to_str().unwrap(),
+        "--quiet",
+    ]);
+    assert_eq!(write.code, 0);
+    assert!(baseline.exists());
+
+    // Known findings no longer fail the high gate.
+    let known = run(&[
+        "scan",
+        fixture("corpus/SS-001").to_str().unwrap(),
+        "--baseline",
+        baseline.to_str().unwrap(),
+        "--fail-on",
+        "high",
+        "--quiet",
+    ]);
+    assert_eq!(known.code, 0);
+
+    // new-only output is empty because everything is baselined.
+    let new_only = run(&[
+        "scan",
+        fixture("corpus/SS-001").to_str().unwrap(),
+        "--baseline",
+        baseline.to_str().unwrap(),
+        "--new-only",
+        "--fail-on",
+        "none",
+        "--quiet",
+    ]);
+    assert_eq!(new_only.code, 0);
+    assert!(new_only.stdout.contains("0 finding(s)"));
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn baseline_from_clean_project_flags_all_findings_as_new() {
+    let dir = std::env::temp_dir().join(format!("soroban-scan-cli-bl2-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let baseline = dir.join("baseline.json");
+
+    let write = run(&[
+        "scan",
+        fixture("projects/soroban-confirmed").to_str().unwrap(),
+        "--write-baseline",
+        baseline.to_str().unwrap(),
+        "--quiet",
+    ]);
+    assert_eq!(write.code, 0);
+
+    let out = run(&[
+        "scan",
+        fixture("corpus/SS-001").to_str().unwrap(),
+        "--baseline",
+        baseline.to_str().unwrap(),
+        "--fail-on",
+        "high",
+        "--quiet",
+    ]);
+    assert_eq!(out.code, 1);
+
+    let _ = std::fs::remove_dir_all(&dir);
+}

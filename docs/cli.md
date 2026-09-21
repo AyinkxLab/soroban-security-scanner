@@ -37,6 +37,10 @@ soroban-scan scan [PATH] [OPTIONS]
 | `--disable <RULE>` | Disable a rule by id (repeatable). |
 | `--rule <RULE>` | Run only the given rule(s) (repeatable). |
 | `--fail-on <none\|info\|low\|medium\|high\|critical>` | Failure threshold (default `high`). |
+| `--baseline <FILE>` | Compare against a baseline; gate applies to new findings only. |
+| `--write-baseline <FILE>` | Write current findings as a baseline and exit. |
+| `--new-only` | With `--baseline`, report only new findings. |
+| `--incremental` | With `--baseline`, do not report resolved findings. |
 | `--quiet`, `-q` | Compact output; suppresses the header. |
 | `--verbose`, `-v` | Include diagnostics. |
 
@@ -57,7 +61,14 @@ soroban-scan scan ./contracts --min-severity high
 
 # A single file
 soroban-scan scan ./contracts/src/lib.rs
+
+# Baseline workflow
+soroban-scan scan ./contracts --write-baseline .baseline.json
+soroban-scan scan ./contracts --baseline .baseline.json --fail-on high
 ```
+
+See [`baselines.md`](baselines.md) for the baseline workflow, fingerprint
+semantics, and incremental scanning.
 
 ---
 

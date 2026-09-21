@@ -10,7 +10,7 @@ without ambiguity.
 
 **Default branch:** `main`
 
-**Current phase:** Phase 7 — Baselines, Incremental Scanning and CI
+**Current phase:** Phase 8 — GitHub and Developer Integrations
 
 ---
 
@@ -24,8 +24,8 @@ without ambiguity.
 | 4 | Initial Soroban Security Detectors | Complete |
 | 5 | Rule Quality and Research Infrastructure | Complete |
 | 6 | CLI and Reporting | Complete |
-| 7 | Baselines, Incremental Scanning and CI | In progress |
-| 8 | GitHub and Developer Integrations | Not started |
+| 7 | Baselines, Incremental Scanning and CI | Complete |
+| 8 | GitHub and Developer Integrations | In progress |
 | 9 | Developer Experience | Not started |
 | 10 | Advanced Analysis and Optional AI | Not started |
 | 11 | Production Hardening, Documentation and Release | Not started |
@@ -140,6 +140,23 @@ Supporting work:
 - [x] [`docs/cli.md`](cli.md) reference and README usage update.
 - [x] 10 black-box CLI integration tests.
 
+### Phase 7 — Baselines, Incremental Scanning and CI (complete)
+
+- [x] Baseline format (`baseline.rs`): line-independent fingerprints, sorted
+      deterministic entries, version validation, and untrusted-input parsing.
+- [x] Baseline comparison: new, existing, and resolved findings.
+- [x] CLI baseline flags: `--baseline`, `--write-baseline`, `--new-only`,
+      `--incremental`. The failure gate considers only new findings when a
+      baseline is supplied.
+- [x] Incremental scanning via single-file/subset scans with resolved reporting
+      disabled.
+- [x] `examples/clean-contract` (passes the gate) and
+      `examples/vulnerable-contract` (intentional findings).
+- [x] GitHub Actions `security-scan.yml` workflow with SARIF upload.
+- [x] Cross-platform machine output: paths serialize with forward slashes.
+- [x] [`docs/baselines.md`](baselines.md) and CLI reference updates.
+- [x] Baseline CLI integration tests.
+
 ---
 
 ## Verified environment
@@ -151,10 +168,10 @@ Supporting work:
 
 ## Test summary
 
-- Unit tests: 96
-- Integration tests: 28 (CLI 10, corpus 3, rule quality 5, adversarial 6,
+- Unit tests: 102
+- Integration tests: 30 (CLI 12, corpus 3, rule quality 5, adversarial 6,
   project detection 4)
-- Total: 124 (all passing)
+- Total: 132 (all passing)
 
 ## Performance
 
@@ -165,8 +182,10 @@ Release throughput on a developer machine: ~2,500-2,800 entry points/s
 
 - Detectors are syntactic; no type resolution or cross-function data flow.
 - SS-002, SS-003, SS-006, SS-007 are heuristic and low/medium confidence.
-- No baseline/incremental scanning yet (Phase 7).
-- SARIF output is validated structurally but has not yet been exercised through
+- The GitHub `security-scan.yml` workflow has been authored and the underlying
+  CLI commands tested locally, but the workflow itself has not yet executed on
+  GitHub Actions.
+- SARIF output is validated structurally but has not been exercised through
   GitHub code scanning.
 
 ## Architecture decisions
@@ -175,5 +194,5 @@ Release throughput on a developer machine: ~2,500-2,800 entry points/s
 
 ## Next task
 
-Phase 7: baseline files and comparison, incremental scanning, GitHub Actions
-workflow, SARIF upload, and CI failure thresholds.
+Phase 8: GitHub Action packaging, pull-request/changed-file analysis, PR
+annotations, and documented GitHub permissions.

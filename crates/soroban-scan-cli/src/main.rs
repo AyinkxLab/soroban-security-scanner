@@ -11,6 +11,7 @@ use std::process::ExitCode;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
+use soroban_scan_core::baseline::{self, Baseline};
 use soroban_scan_core::category::Category;
 use soroban_scan_core::confidence::Confidence;
 use soroban_scan_core::config::ScanConfig;
@@ -172,6 +173,22 @@ struct ScanArgs {
     #[arg(long, value_enum, default_value_t = FailOnArg::High)]
     fail_on: FailOnArg,
 
+    /// Compare against a baseline file, marking findings as new or existing.
+    #[arg(long, value_name = "FILE")]
+    baseline: Option<PathBuf>,
+
+    /// Write current findings to a baseline file and exit successfully.
+    #[arg(long, value_name = "FILE")]
+    write_baseline: Option<PathBuf>,
+
+    /// With --baseline, report only findings that are new.
+    #[arg(long, requires = "baseline")]
+    new_only: bool,
+
+    /// Incremental scan: do not report resolved findings.
+    #[arg(long, requires = "baseline")]
+    incremental: bool,
+
     /// Suppress the report header and diagnostics.
     #[arg(long, short = 'q', conflicts_with = "verbose")]
     quiet: bool,
@@ -313,7 +330,7 @@ fn run_scan(args: ScanArgs, registry: &RuleRegistry) -> CliResult<u8> {
 
     validate_rule_ids(&config, registry)?;
 
-    let outcome = if args.path.is_file() {
+    let mut outcome = if args.path.is_file() {
         let file = args.path.clone();
         let root = file
             .parent()
@@ -324,6 +341,77 @@ fn run_scan(args: ScanArgs, registry: &RuleRegistry) -> CliResult<u8> {
     } else {
         engine::run_scan(&args.path, &config, registry).map_err(runtime)?
     };
+
+    if let Some(path) = &args.write_baseline {
+        let baseline = Baseline::from_findings(&outcome.findings);
+        let text = baseline.to_json().map_err(runtime)?;
+        std::fs::write(path, text)
+            .map_err(|e| CliError::Runtime(format!("cannot write {}: {e}", path.display())))?;
+        if !args.quiet {
+            eprintln!(
+                "wrote baseline with {} finding(s) to {}",
+                baseline.findings.len(),
+                path.display()
+            );
+        }
+        return Ok(EXIT_SUCCESS);
+    }
+
+    let mut new_indices: Option<Vec<usize>> = None;
+    if let Some(path) = &args.baseline {
+        let text = std::fs::read_to_string(path).map_err(|e| {
+            CliError::Runtime(format!("cannot read baseline {}: {e}", path.display()))
+        })?;
+        let baseline = Baseline::from_json(&text).map_err(runtime)?;
+        let comparison = baseline::compare(&outcome.findings, &baseline);
+        let resolved = if args.incremental {
+            0
+        } else {
+            comparison.resolved_count()
+        };
+        if !args.quiet {
+            eprintln!(
+                "baseline: {} new, {} existing, {} resolved{}",
+                comparison.new_count(),
+                comparison.existing_count(),
+                resolved,
+                if args.incremental {
+                    " (incremental)"
+                } else {
+                    ""
+                }
+            );
+        }
+        new_indices = Some(comparison.new);
+    }
+
+    // The failure gate only considers new findings when a baseline is supplied.
+    let threshold = args.fail_on.threshold();
+    let failed = match threshold {
+        None => false,
+        Some(threshold) => match &new_indices {
+            Some(indices) => indices
+                .iter()
+                .any(|&index| outcome.findings[index].severity.meets(threshold)),
+            None => outcome
+                .findings
+                .iter()
+                .any(|finding| finding.severity.meets(threshold)),
+        },
+    };
+
+    if args.new_only {
+        if let Some(indices) = &new_indices {
+            let keep: std::collections::BTreeSet<usize> = indices.iter().copied().collect();
+            outcome.findings = outcome
+                .findings
+                .into_iter()
+                .enumerate()
+                .filter(|(index, _)| keep.contains(index))
+                .map(|(_, finding)| finding)
+                .collect();
+        }
+    }
 
     let rendered = if args.quiet && matches!(args.format, FormatArg::Terminal) {
         report::render_terminal_compact(&outcome)
@@ -347,15 +435,6 @@ fn run_scan(args: ScanArgs, registry: &RuleRegistry) -> CliResult<u8> {
             eprintln!("diagnostic: {}", diagnostic.message);
         }
     }
-
-    let threshold = args.fail_on.threshold();
-    let failed = match threshold {
-        Some(threshold) => outcome
-            .findings
-            .iter()
-            .any(|finding| finding.severity.meets(threshold)),
-        None => false,
-    };
 
     Ok(if failed { EXIT_FINDINGS } else { EXIT_SUCCESS })
 }

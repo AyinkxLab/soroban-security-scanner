@@ -41,6 +41,9 @@ deterministic rule engine, and CI-friendly machine-readable output (JSON, SARIF)
 - CLI: `scan`, `rules`, `explain`, `version`, `init`, `config`.
 - Output formats: terminal, JSON, SARIF 2.1.0, Markdown.
 - Configurable rule selection, thresholds, and excludes.
+- Baselines and incremental scanning (`--baseline`, `--write-baseline`,
+  `--new-only`, `--incremental`).
+- GitHub Actions security-scan workflow with SARIF upload.
 
 ## Non-goals
 

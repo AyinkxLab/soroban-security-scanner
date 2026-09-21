@@ -1,0 +1,55 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-scan-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  scan:
+    name: Scan examples
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build scanner
+        run: cargo build --release -p soroban-scan-cli
+
+      - name: Gate on the clean example
+        run: |
+          ./target/release/soroban-scan scan examples/clean-contract \
+            --fail-on high \
+            --format terminal
+
+      - name: Produce SARIF for the vulnerable example
+        run: |
+          ./target/release/soroban-scan scan examples/vulnerable-contract \
+            --format sarif \
+            --output results.sarif \
+            --fail-on none
+
+      - name: Upload SARIF to GitHub code scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+          category: soroban-scan
