@@ -25,7 +25,10 @@ This is a code-quality signal rather than proof of a vulnerability.",
 panicking, so callers can handle failure. Replace `unwrap`/`expect` on \
 fallible operations with `?`, `unwrap_or`, `unwrap_or_default`, or explicit \
 matching.",
-    references: &["https://developers.stellar.org/docs/learn/encyclopedia/errors-and-fees"],
+    references: &[
+        "https://developers.stellar.org/docs/learn/encyclopedia/errors-and-fees",
+        "https://developers.stellar.org/docs/tools/cli/stellar-cli",
+    ],
 };
 
 /// Detects panic-prone constructs inside contract entry points.
