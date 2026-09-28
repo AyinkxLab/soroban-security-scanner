@@ -7,14 +7,17 @@ use crate::finding::Finding;
 use crate::rule::{Rule, RuleMetadata};
 use crate::severity::Severity;
 
-use super::util::{contract_entry_functions, facts_from_block, location_for};
+use super::util::{
+    contract_entry_functions, facts_with_helpers_from, function_facts, location_for,
+};
 
 /// Rule metadata.
 pub const METADATA: RuleMetadata = RuleMetadata {
     id: "SS-002",
     title: "Cross-contract call without caller authorization",
     description: "A public contract function constructs and calls another \
-contract client but does not call require_auth anywhere in its body. If the \
+contract client but does not call require_auth in its body or in the intra-file \
+helper functions it calls. If the \
 contract acts on funds or privileges it controls, an attacker may be able to \
 trigger cross-contract effects without the caller's approval. This is a \
 heuristic: the called contract may itself enforce authorization, or the \
@@ -45,11 +48,12 @@ impl Rule for CrossContractAuth {
             let Some(file) = &source.syntax else {
                 continue;
             };
+            let summaries = function_facts(file);
             for func in contract_entry_functions(file) {
                 if !func.is_public {
                     continue;
                 }
-                let facts = facts_from_block(func.block);
+                let facts = facts_with_helpers_from(&summaries, &func);
                 if facts.has_require_auth() {
                     continue;
                 }
@@ -100,6 +104,25 @@ mod tests {
                     let client = TokenClient::new(&env, &id);
                     client.transfer(&from, &id, &amount);
                 }
+            }
+            "#,
+            Box::new(CrossContractAuth),
+        );
+        assert!(findings.is_empty());
+    }
+
+    #[test]
+    fn does_not_flag_when_helper_authorizes() {
+        let findings = scan_rule(
+            r#"
+            #[contractimpl]
+            impl C {
+                pub fn pay(env: Env, from: Address, id: Address, amount: i128) {
+                    Self::authorize(&env, &from);
+                    let client = TokenClient::new(&env, &id);
+                    client.transfer(&from, &id, &amount);
+                }
+                fn authorize(_env: &Env, from: &Address) { from.require_auth(); }
             }
             "#,
             Box::new(CrossContractAuth),

@@ -11,3 +11,17 @@ impl Paymaster {
         client.transfer(&from, &to, &amount);
     }
 }
+
+// Helper-based authorization before a cross-contract call.
+#[contractimpl]
+impl Router {
+    pub fn route(env: Env, from: Address, token_id: Address, to: Address, amount: i128) {
+        Self::authorize(&from);
+        let client = TokenClient::new(&env, &token_id);
+        client.transfer(&from, &to, &amount);
+    }
+
+    fn authorize(from: &Address) {
+        from.require_auth();
+    }
+}

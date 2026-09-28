@@ -18,11 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- SS-001 (missing authorization) and SS-006 (persistent write without TTL) now
-  follow intra-file helper functions (bounded depth, cycle-safe, deterministic)
-  before deciding to report. This removes false positives where authorization or
-  TTL management happens in a same-file helper; it does not claim cross-file or
-  whole-program analysis.
+- SS-001 (missing authorization), SS-002 (cross-contract authorization) and
+  SS-006 (persistent write without TTL) now follow intra-file helper functions
+  (bounded depth, cycle-safe, deterministic) before deciding to report. This
+  removes false positives where authorization or TTL management happens in a
+  same-file helper; it does not claim cross-file or whole-program analysis.
+
+### Tests
+
+- Expanded the SS-001 and SS-002 negative corpus with argument-bound
+  (`require_auth_for_args`) and helper-delegated authorization cases, plus new
+  unit tests for the helper path.
 
 ### Added
 
