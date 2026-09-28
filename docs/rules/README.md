@@ -59,6 +59,8 @@ heuristically is reported as `severity: high, confidence: low`, never
 | [SS-006](detectors/SS-006.md) | Persistent storage write without TTL management | low | low | storage |
 | [SS-007](detectors/SS-007.md) | Hardcoded Stellar account or contract address | medium | low | configuration |
 | [SS-008](detectors/SS-008.md) | Unchecked arithmetic in a contract entry point | medium | low | arithmetic |
+| [SS-029](detectors/SS-029.md) | Public test or debug hook in a contract entry point | medium | medium | access-control |
+| [SS-011](detectors/SS-011.md) | Initialization entry point without a re-initialization guard | high | low | access-control |
 
 Each detector has a positive and negative fixture under
 `fixtures/corpus/<RULE-ID>/`.

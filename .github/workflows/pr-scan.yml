@@ -35,8 +35,13 @@ jobs:
         run: |
           base="origin/${{ github.base_ref }}"
           git fetch --no-tags origin "${GITHUB_BASE_REF}" || true
+          # The repository's own fixtures and examples are intentionally
+          # vulnerable test data, not production code: exclude them so they do
+          # not raise code-scanning alerts for every detector change.
           git diff --name-only --diff-filter=ACMR "${base}...HEAD" -- '*.rs' \
-            | sed '/^$/d' > changed.txt
+            | sed '/^$/d' \
+            | grep -v -E '^(fixtures|examples)/' \
+            > changed.txt || true
           count=$(wc -l < changed.txt | tr -d ' ')
           echo "count=${count}" >> "$GITHUB_OUTPUT"
 
@@ -45,6 +50,8 @@ jobs:
         run: |
           ./target/release/soroban-scan scan . \
             --files-from changed.txt \
+            --exclude 'fixtures/**' \
+            --exclude 'examples/**' \
             --format json \
             --output results.json \
             --fail-on none
@@ -62,6 +69,8 @@ jobs:
         run: |
           ./target/release/soroban-scan scan . \
             --files-from changed.txt \
+            --exclude 'fixtures/**' \
+            --exclude 'examples/**' \
             --format sarif \
             --output results.sarif \
             --fail-on none

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- SS-029 "Public test or debug hook in a contract entry point" (medium/medium):
+  name-segment heuristic for backdoor entry points.
+- SS-011 "Initialization entry point without a re-initialization guard"
+  (high/low): flags initializer-style entry points that write storage without an
+  authorization call or a storage existence read.
+- Both detectors ship with corpus fixtures, unit tests, and documentation.
+
 ### Changed
 
 - SS-001 (missing authorization) and SS-006 (persistent write without TTL) now
