@@ -4,6 +4,8 @@
 //! decide whether concrete evidence justifies a finding. No helper here makes a
 //! security judgment on its own.
 
+use std::collections::{BTreeMap, BTreeSet};
+
 use quote::ToTokens;
 use syn::spanned::Spanned;
 use syn::visit::{self, Visit};
@@ -300,6 +302,127 @@ pub fn facts_from_file(file: &syn::File) -> Facts {
     visitor.facts
 }
 
+/// Maximum depth of the intra-file helper walk.
+///
+/// Bounds interprocedural expansion so adversarial or deeply nested call chains
+/// cannot cause unbounded work. The walk is deterministic: the same input always
+/// expands the same set of helpers, in the same order.
+pub const HELPER_SUMMARY_MAX_DEPTH: usize = 3;
+
+/// Collects facts for every function defined in the file, keyed by name.
+///
+/// Includes free functions and inherent/impl methods (public or private),
+/// recursing into inline modules. When a name is defined more than once, the
+/// first definition in source order wins, so resolution stays deterministic.
+pub fn function_facts(file: &syn::File) -> BTreeMap<String, Facts> {
+    let mut map = BTreeMap::new();
+    collect_function_facts(&file.items, &mut map);
+    map
+}
+
+fn collect_function_facts(items: &[syn::Item], out: &mut BTreeMap<String, Facts>) {
+    for item in items {
+        match item {
+            syn::Item::Fn(f) => {
+                out.entry(f.sig.ident.to_string())
+                    .or_insert_with(|| facts_from_block(&f.block));
+            }
+            syn::Item::Impl(imp) => {
+                for impl_item in &imp.items {
+                    if let syn::ImplItem::Fn(f) = impl_item {
+                        out.entry(f.sig.ident.to_string())
+                            .or_insert_with(|| facts_from_block(&f.block));
+                    }
+                }
+            }
+            syn::Item::Mod(m) => {
+                if let Some((_, sub)) = &m.content {
+                    collect_function_facts(sub, out);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// Returns the entry point's facts merged with transitively reachable intra-file
+/// helpers, up to [`HELPER_SUMMARY_MAX_DEPTH`].
+///
+/// Convenience wrapper around [`facts_with_helpers_from`] that computes the
+/// file summaries first. Prefer [`facts_with_helpers_from`] when analyzing many
+/// entry points in the same file (computing summaries once avoids quadratic
+/// work on files with many functions).
+pub fn facts_with_helpers(file: &syn::File, entry: &ContractFn<'_>) -> Facts {
+    let summaries = function_facts(file);
+    facts_with_helpers_from(&summaries, entry)
+}
+
+/// Like [`facts_with_helpers`] but reuses a precomputed summary map.
+///
+/// Only calls that resolve to a function defined in the **same file** are
+/// followed, so unrelated calls are ignored. The merge is deterministic (helpers
+/// are visited in sorted name order) and cycle-safe (each function is visited
+/// once). This narrows false positives for rules such as SS-001 (authorization
+/// performed in a helper) and SS-006 (TTL managed in a helper) without claiming
+/// whole-program analysis.
+pub fn facts_with_helpers_from(
+    summaries: &BTreeMap<String, Facts>,
+    entry: &ContractFn<'_>,
+) -> Facts {
+    let mut merged = facts_from_block(entry.block);
+    let mut visited: BTreeSet<String> = BTreeSet::new();
+    visited.insert(entry.name.clone());
+
+    let mut frontier = direct_callees(&merged, summaries);
+    let mut depth = 0;
+    while !frontier.is_empty() && depth < HELPER_SUMMARY_MAX_DEPTH {
+        let mut next: Vec<String> = Vec::new();
+        for name in frontier {
+            if !visited.insert(name.clone()) {
+                continue;
+            }
+            let Some(facts) = summaries.get(&name) else {
+                continue;
+            };
+            merge_facts(&mut merged, facts);
+            for callee in direct_callees(facts, summaries) {
+                if !visited.contains(&callee) {
+                    next.push(callee);
+                }
+            }
+        }
+        next.sort();
+        next.dedup();
+        frontier = next;
+        depth += 1;
+    }
+    merged
+}
+
+/// Names of functions defined in `summaries` that this fact set calls.
+fn direct_callees(facts: &Facts, summaries: &BTreeMap<String, Facts>) -> Vec<String> {
+    let mut names: BTreeSet<String> = BTreeSet::new();
+    for call in facts.function_calls.iter().chain(facts.method_calls.iter()) {
+        if summaries.contains_key(&call.name) {
+            names.insert(call.name.clone());
+        }
+    }
+    names.into_iter().collect()
+}
+
+/// Appends `src` facts into `dst`, preserving deterministic ordering.
+fn merge_facts(dst: &mut Facts, src: &Facts) {
+    dst.method_calls.extend(src.method_calls.iter().cloned());
+    dst.function_calls
+        .extend(src.function_calls.iter().cloned());
+    dst.macros.extend(src.macros.iter().cloned());
+    dst.strings.extend(src.strings.iter().cloned());
+    dst.arith.extend(src.arith.iter().cloned());
+    dst.has_unsafe |= src.has_unsafe;
+    dst.unsafe_locations
+        .extend(src.unsafe_locations.iter().copied());
+}
+
 /// A contract entry point with its AST body attached.
 pub struct ContractFn<'a> {
     /// Function name.
@@ -426,6 +549,28 @@ mod tests {
             .map(|f| f.op.as_str())
             .collect();
         assert_eq!(ops, vec!["-", "+", "*"]);
+    }
+
+    #[test]
+    fn merges_intra_file_helper_facts() {
+        let file = syn::parse_file(
+            r#"
+            #[contractimpl]
+            impl C {
+                pub fn set_value(env: Env, v: u32) {
+                    Self::check(&env);
+                    env.storage().persistent().set(&Key::V, &v);
+                }
+                fn check(env: &Env) { admin(env).require_auth(); }
+            }
+            "#,
+        )
+        .unwrap();
+        let fns = contract_entry_functions(&file);
+        let entry = fns.iter().find(|f| f.name == "set_value").unwrap();
+        let facts = facts_with_helpers(&file, entry);
+        assert!(facts.has_require_auth());
+        assert_eq!(facts.persistent_mutations().len(), 1);
     }
 
     #[test]

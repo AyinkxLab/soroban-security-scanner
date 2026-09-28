@@ -7,14 +7,17 @@ use crate::finding::Finding;
 use crate::rule::{Rule, RuleMetadata};
 use crate::severity::Severity;
 
-use super::util::{contract_entry_functions, facts_from_block, location_for};
+use super::util::{
+    contract_entry_functions, facts_with_helpers_from, function_facts, location_for,
+};
 
 /// Rule metadata.
 pub const METADATA: RuleMetadata = RuleMetadata {
     id: "SS-001",
     title: "State-changing entry point without caller authorization",
     description: "A public contract function mutates storage but does not call \
-require_auth or require_auth_for_args anywhere in its body. Without an \
+require_auth or require_auth_for_args anywhere in its body or in the intra-file \
+helper functions it calls. Without an \
 authorization check, any account can invoke the function and change contract \
 state, which may allow theft, privilege escalation, or corruption of contract \
 data. This is a heuristic: authorization may legitimately be enforced by a \
@@ -47,11 +50,12 @@ impl Rule for MissingAuthorization {
             let Some(file) = &source.syntax else {
                 continue;
             };
+            let summaries = function_facts(file);
             for func in contract_entry_functions(file) {
                 if !func.is_public {
                     continue;
                 }
-                let facts = facts_from_block(func.block);
+                let facts = facts_with_helpers_from(&summaries, &func);
                 if facts.has_require_auth() {
                     continue;
                 }
@@ -99,6 +103,27 @@ mod tests {
                 pub fn set_value(env: Env, admin: Address, v: u32) {
                     admin.require_auth();
                     env.storage().persistent().set(&Key::V, &v);
+                }
+            }
+            "#,
+            Box::new(MissingAuthorization),
+        );
+        assert!(findings.is_empty());
+    }
+
+    #[test]
+    fn does_not_flag_when_helper_authorizes() {
+        let findings = scan_rule(
+            r#"
+            #[contractimpl]
+            impl C {
+                pub fn set_value(env: Env, v: u32) {
+                    Self::check_auth(&env);
+                    env.storage().persistent().set(&Key::V, &v);
+                }
+                fn check_auth(env: &Env) {
+                    let admin = get_admin(env);
+                    admin.require_auth();
                 }
             }
             "#,
