@@ -215,6 +215,7 @@ we'll help wire it up.
 - [CLI Reference](docs/cli.md) · [Configuration](docs/configuration.md)
 - [Rules](docs/rules/README.md) · [Baselines](docs/baselines.md)
 - [GitHub Integration](docs/github-integration.md)
+- [Observatory Integration](docs/integration/observatory.md) — the stable, versioned JSON/SARIF contract for downstream consumers such as the Stellar Contract Observatory.
 - [Security Model](docs/security/security-model.md) · [Threat Model](docs/security/threat-model.md)
 - [Architecture](docs/architecture/overview.md) · [Project Status](docs/PROJECT_STATUS.md)
 - [Roadmap](docs/ROADMAP.md) · [Issue Backlog](docs/ISSUE_BACKLOG.md) · [Wave Board](docs/WAVE_BOARD.md)

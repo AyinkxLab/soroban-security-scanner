@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AyinkxLab/soroban-security-scanner/docs/integration/report.schema.json",
+  "title": "soroban-scan JSON report",
+  "description": "Machine-readable security report emitted by `soroban-scan scan --format json`. The stable integration contract for downstream consumers such as the Stellar Contract Observatory.",
+  "type": "object",
+  "required": ["schema_version", "tool", "project", "stats", "findings", "diagnostics"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Version of the report contract, independent of the tool version.",
+      "const": "1"
+    },
+    "tool": {
+      "type": "object",
+      "required": ["name", "version", "information_uri"],
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "information_uri": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "project": {
+      "type": "object",
+      "required": ["root", "kind", "source_files", "soroban_sdk_versions"],
+      "properties": {
+        "root": { "type": "string" },
+        "kind": {
+          "type": "string",
+          "enum": ["generic_rust", "likely_soroban", "confirmed_soroban"]
+        },
+        "source_files": { "type": "integer", "minimum": 0 },
+        "soroban_sdk_versions": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "stats": {
+      "type": "object",
+      "required": [
+        "files_analyzed",
+        "rules_run",
+        "rules_skipped",
+        "findings_raw",
+        "findings_rejected"
+      ],
+      "properties": {
+        "files_analyzed": { "type": "integer", "minimum": 0 },
+        "rules_run": { "type": "integer", "minimum": 0 },
+        "rules_skipped": { "type": "integer", "minimum": 0 },
+        "findings_raw": { "type": "integer", "minimum": 0 },
+        "findings_rejected": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": true
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "rule_id",
+          "title",
+          "description",
+          "severity",
+          "confidence",
+          "category",
+          "location",
+          "evidence",
+          "remediation",
+          "references",
+          "fingerprint"
+        ],
+        "properties": {
+          "rule_id": { "type": "string", "pattern": "^SS-[0-9]{3}$" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "severity": {
+            "type": "string",
+            "enum": ["info", "low", "medium", "high", "critical"]
+          },
+          "confidence": { "type": "string", "enum": ["low", "medium", "high"] },
+          "category": { "type": "string" },
+          "location": {
+            "type": "object",
+            "required": ["file", "line"],
+            "properties": {
+              "file": { "type": "string" },
+              "line": { "type": "integer", "minimum": 1 },
+              "column": { "type": "integer", "minimum": 1 },
+              "end_line": { "type": "integer", "minimum": 1 },
+              "end_column": { "type": "integer", "minimum": 1 }
+            },
+            "additionalProperties": true
+          },
+          "evidence": { "type": "string" },
+          "remediation": { "type": "string" },
+          "references": { "type": "array", "items": { "type": "string" } },
+          "fingerprint": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["level", "message"],
+        "properties": {
+          "level": { "type": "string" },
+          "message": { "type": "string" },
+          "path": { "type": ["string", "null"] },
+          "line": { "type": ["integer", "null"] }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}
