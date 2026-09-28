@@ -34,6 +34,29 @@ order-of-magnitude guidance, not guarantees.
 
 Debug builds are roughly 5-8× slower; always benchmark with `--release`.
 
+## End-to-end (CLI) benchmark
+
+The in-process example measures parsing and detection on synthetic sources. To
+measure the **combined** system — project discovery, parsing, scanning and
+report generation — time the real release binary:
+
+```bash
+cargo build --release -p soroban-scan-cli
+python tools/benchmark.py --target examples/vulnerable-contract --runs 10
+```
+
+The script performs one warm-up run, then reports min/median/mean/max over the
+requested runs. It uses only the Python standard library. Compare before/after on
+the same machine, the same target and the same profile, and always benchmark a
+`--release` build.
+
+## Pathological-input regression
+
+`crates/soroban-scan-core/tests/performance.rs` asserts generous upper time
+bounds for adversarial inputs (deeply chained helpers, many entry points with
+cross-calls). These guard against algorithmic regressions — such as quadratic
+helper-summary expansion — and are not precise benchmarks.
+
 ## Interpreting results
 
 - Cost scales linearly with source size, which is expected for a

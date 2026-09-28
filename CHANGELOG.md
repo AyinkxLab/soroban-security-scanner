@@ -30,6 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`require_auth_for_args`) and helper-delegated authorization cases, plus new
   unit tests for the helper path.
 
+### Performance
+
+- Added an end-to-end CLI benchmark (`tools/benchmark.py`) covering discovery,
+  parsing, scanning and report generation, plus pathological-input regression
+  tests (`crates/soroban-scan-core/tests/performance.rs`).
+
 ### Added
 
 - Explicit `schema_version` (`"1"`) in the JSON report, plus a published
