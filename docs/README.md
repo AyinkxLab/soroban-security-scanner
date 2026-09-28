@@ -15,6 +15,7 @@ Start here.
 - [Baselines](baselines.md) — track new vs. known findings.
 - [GitHub Integration](github-integration.md) — Action, SARIF, PR scanning.
 - [GitHub Action](github-action.md) — inputs, outputs, and usage examples.
+- [CI Recipes](ci-recipes.md) — copy-paste snippets for common CI systems and hooks.
 - [Optional AI Assistance](ai.md) — off by default, never authoritative.
 - [Troubleshooting](troubleshooting.md) — common problems.
 
