@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- SS-001 (missing authorization) and SS-006 (persistent write without TTL) now
+  follow intra-file helper functions (bounded depth, cycle-safe, deterministic)
+  before deciding to report. This removes false positives where authorization or
+  TTL management happens in a same-file helper; it does not claim cross-file or
+  whole-program analysis.
+
 ### Added
 
 - Explicit `schema_version` (`"1"`) in the JSON report, plus a published

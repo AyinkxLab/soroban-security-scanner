@@ -7,14 +7,17 @@ use crate::finding::Finding;
 use crate::rule::{Rule, RuleMetadata};
 use crate::severity::Severity;
 
-use super::util::{contract_entry_functions, facts_from_block, location_for};
+use super::util::{
+    contract_entry_functions, facts_with_helpers_from, function_facts, location_for,
+};
 
 /// Rule metadata.
 pub const METADATA: RuleMetadata = RuleMetadata {
     id: "SS-006",
     title: "Persistent storage write without TTL management",
     description: "A contract entry point writes to persistent storage but does \
-not call `extend_ttl`, `set_ttl`, or `bump` in the same function. Persistent \
+not call `extend_ttl`, `set_ttl`, or `bump` in the same function or in the \
+intra-file helpers it calls. Persistent \
 entries have a time-to-live; if it is not extended, stored data can expire and \
 be lost. TTL may legitimately be managed elsewhere (for example in a separate \
 maintenance entry point), so this is a low-confidence signal.",
@@ -44,11 +47,12 @@ impl Rule for TtlManagement {
             let Some(file) = &source.syntax else {
                 continue;
             };
+            let summaries = function_facts(file);
             for func in contract_entry_functions(file) {
                 if !func.is_public {
                     continue;
                 }
-                let facts = facts_from_block(func.block);
+                let facts = facts_with_helpers_from(&summaries, &func);
                 let writes = facts.persistent_mutations();
                 if writes.is_empty() || !facts.ttl_management().is_empty() {
                     continue;
@@ -98,6 +102,27 @@ mod tests {
                 pub fn put(env: Env, admin: Address, v: u32) {
                     admin.require_auth();
                     env.storage().persistent().set(&K, &v);
+                    env.storage().persistent().extend_ttl(&K, 100, 1000);
+                }
+            }
+            "#,
+            Box::new(TtlManagement),
+        );
+        assert!(findings.is_empty());
+    }
+
+    #[test]
+    fn does_not_flag_when_helper_extends_ttl() {
+        let findings = scan_rule(
+            r#"
+            #[contractimpl]
+            impl C {
+                pub fn put(env: Env, admin: Address, v: u32) {
+                    admin.require_auth();
+                    env.storage().persistent().set(&K, &v);
+                    Self::bump(&env);
+                }
+                fn bump(env: &Env) {
                     env.storage().persistent().extend_ttl(&K, 100, 1000);
                 }
             }

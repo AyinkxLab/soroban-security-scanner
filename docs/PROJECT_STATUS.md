@@ -252,7 +252,9 @@ Release throughput on a developer machine: ~2,500-2,800 entry points/s
 
 ## Known limitations
 
-- Detectors are syntactic; no type resolution or cross-function data flow.
+- Detectors are syntactic; no type resolution. SS-001 and SS-006 follow
+  intra-file helper functions (bounded depth) but there is no whole-program or
+  cross-file data flow.
 - SS-002, SS-003, SS-006, SS-007, SS-008 are heuristic and low/medium confidence.
 - The `PR Security Scan` workflow has not yet run (no pull request has been
   opened); its underlying commands are covered by local tests.
