@@ -151,9 +151,10 @@ Category:   authorization
 ## Continuous integration & GitHub code scanning
 
 Emit SARIF and upload it to GitHub code scanning, or use the bundled composite
-Action to scan only the files changed in a pull request. See
-[`docs/github-integration.md`](docs/github-integration.md) and
-[`action.yml`](action.yml).
+Action to scan only the files changed in a pull request. See the
+[GitHub Action reference](docs/github-action.md) for inputs, outputs and
+examples, [`docs/github-integration.md`](docs/github-integration.md) for SARIF,
+annotations and baselines, and [`action.yml`](action.yml) for the metadata.
 
 ```yaml
 - uses: AyinkxLab/soroban-security-scanner@main
