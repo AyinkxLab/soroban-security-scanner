@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Explicit `schema_version` (`"1"`) in the JSON report, plus a published
+  integration contract (`docs/integration/observatory.md` and
+  `docs/integration/report.schema.json`) that defines `soroban-scan` as the
+  security-analysis subsystem consumed by the Stellar Contract Observatory.
+
 ## [0.2.0] - 2026-09-28
 
 ### Added

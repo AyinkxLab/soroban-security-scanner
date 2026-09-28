@@ -18,6 +18,14 @@ pub const TOOL_NAME: &str = "soroban-scan";
 pub const TOOL_URL: &str = "https://github.com/AyinkxLab/soroban-security-scanner";
 /// SARIF schema URI.
 pub const SARIF_SCHEMA: &str = "https://json.schemastore.org/sarif-2.1.0.json";
+/// Version of the machine-readable scan report contract.
+///
+/// This is the stable interface between the scanner and downstream consumers
+/// (for example the Stellar Contract Observatory). It is independent of the
+/// tool version and only changes when the report shape changes in a way
+/// consumers must handle. Additive, backward-compatible changes keep the same
+/// major value and are documented in `docs/integration/observatory.md`.
+pub const REPORT_SCHEMA_VERSION: &str = "1";
 
 /// Output format for scan results.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -150,6 +158,7 @@ pub fn render_terminal_compact(outcome: &ScanOutcome) -> String {
 /// A serializable JSON report.
 #[derive(Debug, Serialize)]
 struct JsonReport<'a> {
+    schema_version: &'static str,
     tool: ToolInfo,
     project: ProjectSummary,
     stats: StatsSummary,
@@ -187,6 +196,7 @@ struct StatsSummary {
 /// Renders the JSON report.
 pub fn render_json(outcome: &ScanOutcome) -> Result<String, serde_json::Error> {
     let report = JsonReport {
+        schema_version: REPORT_SCHEMA_VERSION,
         tool: ToolInfo {
             name: TOOL_NAME,
             version: crate::VERSION,
@@ -478,6 +488,31 @@ mod tests {
         let value: serde_json::Value = serde_json::from_str(&text).unwrap();
         assert_eq!(value["tool"]["name"], "soroban-scan");
         assert!(!value["findings"].as_array().unwrap().is_empty());
+    }
+
+    #[test]
+    fn json_report_exposes_the_stable_contract() {
+        let (outcome, _) = sample();
+        let text = render_json(&outcome).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&text).unwrap();
+        assert_eq!(value["schema_version"], REPORT_SCHEMA_VERSION);
+        for key in ["tool", "project", "stats", "findings", "diagnostics"] {
+            assert!(value.get(key).is_some(), "missing top-level key: {key}");
+        }
+        let finding = &value["findings"][0];
+        for key in [
+            "rule_id",
+            "title",
+            "severity",
+            "confidence",
+            "category",
+            "location",
+            "evidence",
+            "remediation",
+            "fingerprint",
+        ] {
+            assert!(finding.get(key).is_some(), "finding missing key: {key}");
+        }
     }
 
     #[test]
