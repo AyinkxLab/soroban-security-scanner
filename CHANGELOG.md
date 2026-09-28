@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- SS-008 "Unchecked arithmetic in a contract entry point" detector (medium
+  severity, low confidence) with positive/negative corpus fixtures, unit tests,
+  and documentation. The AST utility layer now records binary `+`, `-`, and `*`
+  operations (`rules::util`).
+
+### Documentation
+
+- Dedicated GitHub Action reference (`docs/github-action.md`).
+- CI recipes gallery (`docs/ci-recipes.md`).
+- Refreshed top-level README with badges, quickstart, the detector table,
+  ecosystem links, and maintainership notes.
+
 ## [0.1.0] - 2026-09-21
 
 First MVP release. Deterministic, evidence-based security analysis for Stellar

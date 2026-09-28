@@ -15,6 +15,7 @@ mod missing_authorization;
 mod panic_prone;
 mod ttl_management;
 mod unbounded_iteration;
+mod unchecked_arithmetic;
 mod unsafe_code;
 
 #[cfg(test)]
@@ -31,6 +32,7 @@ pub fn register_all(registry: &mut RuleRegistry) -> Result<(), RegistryError> {
     registry.register(Box::new(unsafe_code::UnsafeCode))?;
     registry.register(Box::new(ttl_management::TtlManagement))?;
     registry.register(Box::new(hardcoded_address::HardcodedAddress))?;
+    registry.register(Box::new(unchecked_arithmetic::UncheckedArithmetic))?;
     Ok(())
 }
 
@@ -44,7 +46,7 @@ mod tests {
         let ids: Vec<_> = registry.metadata_sorted().iter().map(|m| m.id).collect();
         assert_eq!(
             ids,
-            vec!["SS-001", "SS-002", "SS-003", "SS-004", "SS-005", "SS-006", "SS-007"]
+            vec!["SS-001", "SS-002", "SS-003", "SS-004", "SS-005", "SS-006", "SS-007", "SS-008"]
         );
     }
 }
