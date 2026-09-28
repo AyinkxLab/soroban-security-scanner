@@ -67,6 +67,19 @@ pub struct StringFact {
     pub column: usize,
 }
 
+/// A binary arithmetic fact (`+`, `-`, or `*`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArithFact {
+    /// Operator text (`+`, `-`, or `*`).
+    pub op: String,
+    /// 1-based line.
+    pub line: usize,
+    /// 1-based column.
+    pub column: usize,
+    /// Rendered expression text (may be truncated).
+    pub text: String,
+}
+
 /// Facts extracted from a function body or file.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Facts {
@@ -78,6 +91,8 @@ pub struct Facts {
     pub macros: Vec<MacroFact>,
     /// String literals.
     pub strings: Vec<StringFact>,
+    /// Binary arithmetic operations (`+`, `-`, `*`).
+    pub arith: Vec<ArithFact>,
     /// Whether the code contains `unsafe`.
     pub has_unsafe: bool,
     /// Locations of `unsafe` constructs.
@@ -153,6 +168,11 @@ impl Facts {
         }
         found.sort_by_key(|(_, line, col, _)| (*line, *col));
         found
+    }
+
+    /// Binary arithmetic operations (`+`, `-`, `*`) in source order.
+    pub fn arithmetic_ops(&self) -> &[ArithFact] {
+        &self.arith
     }
 }
 
@@ -235,6 +255,25 @@ impl<'ast> Visit<'ast> for FactsVisitor {
             });
         }
         visit::visit_lit(self, node);
+    }
+
+    fn visit_expr_binary(&mut self, node: &'ast syn::ExprBinary) {
+        let op = match node.op {
+            syn::BinOp::Add(_) => Some("+"),
+            syn::BinOp::Sub(_) => Some("-"),
+            syn::BinOp::Mul(_) => Some("*"),
+            _ => None,
+        };
+        if let Some(op) = op {
+            let (line, column) = span_line_col(node);
+            self.facts.arith.push(ArithFact {
+                op: op.to_string(),
+                line,
+                column,
+                text: truncate(&node.to_token_stream().to_string(), 160),
+            });
+        }
+        visit::visit_expr_binary(self, node);
     }
 
     fn visit_expr_unsafe(&mut self, node: &'ast syn::ExprUnsafe) {
@@ -374,6 +413,19 @@ mod tests {
     fn detects_require_auth() {
         let facts = facts_of("fn f(a: Address) { a.require_auth(); }");
         assert!(facts.has_require_auth());
+    }
+
+    #[test]
+    fn detects_arithmetic_ops_and_ignores_non_arithmetic() {
+        let facts = facts_of(
+            "fn f(a: i128, b: i128) { let _ = a - b; let _ = a + b; let _ = a * b; let _ = a / b; let _ = a == b; }",
+        );
+        let ops: Vec<_> = facts
+            .arithmetic_ops()
+            .iter()
+            .map(|f| f.op.as_str())
+            .collect();
+        assert_eq!(ops, vec!["-", "+", "*"]);
     }
 
     #[test]

@@ -58,6 +58,7 @@ heuristically is reported as `severity: high, confidence: low`, never
 | [SS-005](detectors/SS-005.md) | Unsafe code in a Soroban contract | medium | high | unsafe |
 | [SS-006](detectors/SS-006.md) | Persistent storage write without TTL management | low | low | storage |
 | [SS-007](detectors/SS-007.md) | Hardcoded Stellar account or contract address | medium | low | configuration |
+| [SS-008](detectors/SS-008.md) | Unchecked arithmetic in a contract entry point | medium | low | arithmetic |
 
 Each detector has a positive and negative fixture under
 `fixtures/corpus/<RULE-ID>/`.

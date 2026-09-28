@@ -50,7 +50,7 @@ Requires a stable Rust toolchain. See [`docs/development/setup.md`](docs/develop
 
 ## What it detects
 
-Seven Soroban-aware detectors ship today (`SS-001`–`SS-007`). Severity and
+Eight Soroban-aware detectors ship today (`SS-001`–`SS-008`). Severity and
 confidence are independent and always reported honestly.
 
 | Rule | Title | Severity | Confidence | Category |
@@ -62,6 +62,7 @@ confidence are independent and always reported honestly.
 | [SS-005](docs/rules/detectors/SS-005.md) | Unsafe code in a Soroban contract | medium | high | unsafe |
 | [SS-006](docs/rules/detectors/SS-006.md) | Persistent storage write without TTL management | low | low | storage |
 | [SS-007](docs/rules/detectors/SS-007.md) | Hardcoded Stellar account or contract address | medium | low | configuration |
+| [SS-008](docs/rules/detectors/SS-008.md) | Unchecked arithmetic in a contract entry point | medium | low | arithmetic |
 
 Rule identifiers are stable (never reused or renumbered). See
 [`docs/rules/README.md`](docs/rules/README.md) for the full rule system.
@@ -86,7 +87,7 @@ Rule identifiers are stable (never reused or renumbered). See
 
 - Deterministic project discovery and Soroban classification.
 - `syn`-based Rust parsing with source locations.
-- Seven security detectors (`SS-001`–`SS-007`) with fixtures and documentation.
+- Eight security detectors (`SS-001`–`SS-008`) with fixtures and documentation.
 - CLI: `scan`, `rules`, `explain`, `version`, `init`, `config`.
 - Output formats: terminal, JSON, SARIF 2.1.0, Markdown.
 - Configurable rule selection, thresholds, and excludes.
