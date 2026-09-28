@@ -13,9 +13,11 @@ mod cross_contract_auth;
 mod hardcoded_address;
 mod missing_authorization;
 mod panic_prone;
+mod public_test_hooks;
 mod ttl_management;
 mod unbounded_iteration;
 mod unchecked_arithmetic;
+mod unprotected_initializer;
 mod unsafe_code;
 
 #[cfg(test)]
@@ -33,6 +35,8 @@ pub fn register_all(registry: &mut RuleRegistry) -> Result<(), RegistryError> {
     registry.register(Box::new(ttl_management::TtlManagement))?;
     registry.register(Box::new(hardcoded_address::HardcodedAddress))?;
     registry.register(Box::new(unchecked_arithmetic::UncheckedArithmetic))?;
+    registry.register(Box::new(public_test_hooks::PublicTestHooks))?;
+    registry.register(Box::new(unprotected_initializer::UnprotectedInitializer))?;
     Ok(())
 }
 
@@ -46,7 +50,10 @@ mod tests {
         let ids: Vec<_> = registry.metadata_sorted().iter().map(|m| m.id).collect();
         assert_eq!(
             ids,
-            vec!["SS-001", "SS-002", "SS-003", "SS-004", "SS-005", "SS-006", "SS-007", "SS-008"]
+            vec![
+                "SS-001", "SS-002", "SS-003", "SS-004", "SS-005", "SS-006", "SS-007", "SS-008",
+                "SS-011", "SS-029"
+            ]
         );
     }
 }

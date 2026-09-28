@@ -56,7 +56,7 @@ fn positive_and_negative_fixtures_match_expectations() {
         checked += 1;
     }
 
-    assert_eq!(checked, 8, "expected fixtures for all built-in rules");
+    assert_eq!(checked, 10, "expected fixtures for all built-in rules");
 }
 
 #[test]
