@@ -2,6 +2,14 @@
 
 **Deterministic, evidence-based security analysis for Stellar Soroban smart contracts and Soroban-related Rust projects.**
 
+[![CI](https://github.com/AyinkxLab/soroban-security-scanner/actions/workflows/ci.yml/badge.svg)](https://github.com/AyinkxLab/soroban-security-scanner/actions/workflows/ci.yml)
+[![Examples](https://github.com/AyinkxLab/soroban-security-scanner/actions/workflows/examples.yml/badge.svg)](https://github.com/AyinkxLab/soroban-security-scanner/actions/workflows/examples.yml)
+[![Security Scan](https://github.com/AyinkxLab/soroban-security-scanner/actions/workflows/security-scan.yml/badge.svg)](https://github.com/AyinkxLab/soroban-security-scanner/actions/workflows/security-scan.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/rust-stable-orange.svg)](https://www.rust-lang.org/)
+[![Status: early development](https://img.shields.io/badge/status-early%20development-yellow.svg)](docs/PROJECT_STATUS.md)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
 `soroban-scan` statically analyzes Soroban/Rust source code and reports security
 findings with stable rule identifiers, severity and confidence ratings, precise
 source locations, evidence, and remediation guidance.
@@ -16,13 +24,47 @@ deploys, signs, or mutates the code it analyzes.
 
 ## Why
 
-Soroban smart contracts handle real value. Security review is still largely manual
-and ad hoc. Generic Rust linters (`clippy`) do not understand Soroban semantics,
-and general-purpose static analyzers do not model Soroban's authorization,
-storage, and resource model.
+Soroban smart contracts handle real value, and security review is still largely
+manual and ad hoc. Generic Rust linters (`clippy`) do not understand Soroban
+semantics, and general-purpose static analyzers do not model Soroban's
+authorization, storage, and resource model.
 
 `soroban-scan` fills that gap with focused, Soroban-aware detectors, a
 deterministic rule engine, and CI-friendly machine-readable output (JSON, SARIF).
+
+## Quickstart
+
+```bash
+git clone https://github.com/AyinkxLab/soroban-security-scanner
+cd soroban-security-scanner
+cargo build --release
+
+# Scan a contract and print findings
+./target/release/soroban-scan scan ./examples/vulnerable-contract --fail-on none
+
+# Machine-readable output for CI
+./target/release/soroban-scan scan . --format sarif --output results.sarif
+```
+
+Requires a stable Rust toolchain. See [`docs/development/setup.md`](docs/development/setup.md).
+
+## What it detects
+
+Seven Soroban-aware detectors ship today (`SS-001`–`SS-007`). Severity and
+confidence are independent and always reported honestly.
+
+| Rule | Title | Severity | Confidence | Category |
+| ---- | ----- | -------- | ---------- | -------- |
+| [SS-001](docs/rules/detectors/SS-001.md) | State-changing entry point without caller authorization | high | medium | authorization |
+| [SS-002](docs/rules/detectors/SS-002.md) | Cross-contract call without caller authorization | high | low | cross-contract |
+| [SS-003](docs/rules/detectors/SS-003.md) | Unbounded storage iteration in an entry point | medium | low | resource-usage |
+| [SS-004](docs/rules/detectors/SS-004.md) | Panic-prone construct in a contract entry point | low | medium | error-handling |
+| [SS-005](docs/rules/detectors/SS-005.md) | Unsafe code in a Soroban contract | medium | high | unsafe |
+| [SS-006](docs/rules/detectors/SS-006.md) | Persistent storage write without TTL management | low | low | storage |
+| [SS-007](docs/rules/detectors/SS-007.md) | Hardcoded Stellar account or contract address | medium | low | configuration |
+
+Rule identifiers are stable (never reused or renumbered). See
+[`docs/rules/README.md`](docs/rules/README.md) for the full rule system.
 
 ## Goals
 
@@ -32,6 +74,13 @@ deterministic rule engine, and CI-friendly machine-readable output (JSON, SARIF)
 - Integrate cleanly with CI and GitHub code scanning via SARIF.
 - Stay useful with no network access and no AI.
 - Be safe to run on untrusted repositories.
+
+## Non-goals
+
+- The scanner does not replace professional security audits.
+- The scanner does not execute or deploy contracts.
+- The scanner does not require private keys, wallets, or network access.
+- AI is never the authoritative security engine.
 
 ## Implemented today
 
@@ -50,26 +99,6 @@ deterministic rule engine, and CI-friendly machine-readable output (JSON, SARIF)
 - A compilable example suite: clean and intentionally vulnerable Soroban
   contracts (token, escrow, vault) plus a classic Stellar address example,
   built in CI.
-
-## Non-goals
-
-- The scanner does not replace professional security audits.
-- The scanner does not execute or deploy contracts.
-- The scanner does not require private keys, wallets, or network access.
-- AI is never the authoritative security engine.
-
-## Installation
-
-> Not yet published. Build from source:
-
-```bash
-git clone https://github.com/AyinkxLab/soroban-security-scanner
-cd soroban-security-scanner
-cargo build --release
-./target/release/soroban-scan --help
-```
-
-Requires a stable Rust toolchain. See [`docs/development/setup.md`](docs/development/setup.md).
 
 ## Usage
 
@@ -107,14 +136,6 @@ high SS-002 src/lib.rs:46:22
 5 finding(s) — critical: 0, high: 2, medium: 1, low: 2, info: 0
 ```
 
-Machine-readable output for CI and code scanning:
-
-```bash
-soroban-scan scan . --format json    --output report.json
-soroban-scan scan . --format sarif   --output results.sarif
-soroban-scan scan . --format markdown --output report.md
-```
-
 Explore what a finding means:
 
 ```console
@@ -127,6 +148,19 @@ Category:   authorization
 ...
 ```
 
+## Continuous integration & GitHub code scanning
+
+Emit SARIF and upload it to GitHub code scanning, or use the bundled composite
+Action to scan only the files changed in a pull request. See
+[`docs/github-integration.md`](docs/github-integration.md) and
+[`action.yml`](action.yml).
+
+```yaml
+- uses: AyinkxLab/soroban-security-scanner@main
+  with:
+    fail-on: high
+```
+
 ## Architecture
 
 ```
@@ -135,6 +169,7 @@ crates/
   soroban-scan-cli    # `soroban-scan` binary
 tools/                # supporting tooling (Python)
 fixtures/             # positive/negative security fixtures and corpus
+examples/             # compilable clean + vulnerable Soroban contracts
 docs/                 # architecture, development, security, rules, contributors
 ```
 
@@ -147,6 +182,29 @@ The scanner treats every scanned repository as **hostile input**. It does not
 require or store keys, does not sign or submit transactions, does not execute
 scanned code, and makes no network requests by default. See
 [`SECURITY.md`](SECURITY.md) and [`docs/security/threat-model.md`](docs/security/threat-model.md).
+
+## Ecosystem
+
+`soroban-scan` is built for the Stellar/Soroban ecosystem and is designed to sit
+alongside the official toolchain:
+
+- Stellar developer docs — <https://developers.stellar.org/>
+- Soroban smart contracts guide — <https://developers.stellar.org/docs/smart-contracts>
+- Stellar — <https://stellar.org/>
+
+We aim to be listed among the community's Soroban developer tooling. If your
+project would benefit from Soroban-aware static analysis in CI, open an issue and
+we'll help wire it up.
+
+## How this project is run
+
+- **Maintainer:** [@Ayinkx](https://github.com/Ayinkx) (AyinkxLab).
+- **Contribution flow:** issues are scoped with difficulty labels and clear
+  acceptance criteria; PRs are reviewed before merge. This project participates
+  in open-source contribution waves via [Drips Wave](docs/WAVE.md).
+- **Releases:** tagged releases with a maintained [`CHANGELOG.md`](CHANGELOG.md).
+- **Security:** please follow [`SECURITY.md`](SECURITY.md) for responsible
+  disclosure.
 
 ## Documentation
 
@@ -164,7 +222,8 @@ scanned code, and makes no network requests by default. See
 ## Contributing
 
 Contributions are welcome. Start with [`CONTRIBUTING.md`](CONTRIBUTING.md) and the
-[contributor roadmap](docs/contributors/roadmap.md).
+[contributor roadmap](docs/contributors/roadmap.md). Issues labelled
+`good first issue` and `help wanted` are a good place to begin.
 
 ## License
 
