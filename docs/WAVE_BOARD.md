@@ -2,7 +2,7 @@
 
 A curated, single-cycle subset of the backlog for the first Drips Wave, chosen
 to be **independent**, **completable in one cycle**, and **representative** of
-the project. It is deliberately a subset of the full 170-issue backlog, with a
+the project. It is deliberately a subset of the full backlog, with a
 bounded points budget.
 
 Point values are assigned in the Drips Wave maintainer dashboard (Trivial 100 /
@@ -35,7 +35,7 @@ Medium 150 / High 200). The labels here are the honest pre-estimate.
 
 | # | Title |
 | - | ----- |
-| [#171](https://github.com/AyinkxLab/soroban-security-scanner/issues/171) | feat(parser): extract direct intra-file function calls |
+| [#42](https://github.com/AyinkxLab/soroban-security-scanner/issues/42) | feat(parser): inspect `cfg`-gated items and record conditionality |
 | [#4](https://github.com/AyinkxLab/soroban-security-scanner/issues/4) | feat(cli): add `--format github` workflow annotations |
 | [#5](https://github.com/AyinkxLab/soroban-security-scanner/issues/5) | feat(cli): add shell completion generation |
 | [#24](https://github.com/AyinkxLab/soroban-security-scanner/issues/24) | docs: add a rule cookbook with end-to-end detection examples |
@@ -58,4 +58,4 @@ Medium 150 / High 200). The labels here are the honest pre-estimate.
 - Contributors must request assignment before starting; see [`WAVE.md`](WAVE.md).
 - After repository approval, add these issues to the Program. Apply the Program
   label manually or select them in the **Maintainers → Issues** dashboard.
-- Keep the budget bounded; do not add all 170 issues to a single Wave.
+- Keep the budget bounded; do not add every open issue to a single Wave.
