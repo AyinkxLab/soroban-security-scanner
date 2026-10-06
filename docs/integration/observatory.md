@@ -72,9 +72,13 @@ A machine-readable [JSON Schema](report.schema.json) accompanies this document.
     "rules_run": 0,
     "rules_skipped": 0,
     "findings_raw": 0,
-    "findings_rejected": 0
+    "findings_rejected": 0,
+    "suppressions_detected": 0,
+    "findings_suppressed": 0
   },
   "findings": [ /* see below */ ],
+  "suppressed": [ /* finding + the inline directive that suppressed it */ ],
+  "suppressions": [ /* every detected directive, used or not */ ],
   "diagnostics": [
     { "level": "warning", "message": "…", "path": "…", "line": 0 }
   ]
@@ -108,6 +112,28 @@ A machine-readable [JSON Schema](report.schema.json) accompanies this document.
 - **`confidence`** is independent of `severity`. Heuristic detectors report low
   confidence rather than overstating certainty.
 
+## Inline suppressions
+
+In-source directives (`// soroban-scan: ignore SS-XXX -- reason`) remove a
+finding from the **gate**, never from the **report**:
+
+- `findings` contains only the findings that reach the gate.
+- `suppressed` contains each suppressed finding (same shape as a finding) plus
+  a `suppression` object with `file`, `line`, `rules` and the optional `reason`.
+- `suppressions` lists every detected directive, including directives that
+  matched nothing (`applied: false`), so suppression usage is auditable.
+- `stats.findings_suppressed` and `stats.suppressions_detected` carry the
+  counts.
+
+SARIF keeps suppressed findings in `results` and marks them with the SARIF
+2.1.0 in-source suppression object:
+
+```jsonc
+"suppressions": [ { "kind": "inSource", "status": "accepted", "justification": "..." } ]
+```
+
+See [Inline suppressions](../suppressions.md).
+
 ## What the Observatory consumes
 
 1. Contract/project inventory and identity come from the Observatory's own
@@ -128,6 +154,10 @@ scanner without a coordinated release, and vice versa.
 | Report `schema_version` | Tool | Notes |
 | ----------------------- | ---- | ----- |
 | `1` | `>= 0.2.0` | First published integration contract (JSON report + SARIF). |
+
+- `schema_version` `1` gained `stats.suppressions_detected`,
+  `stats.findings_suppressed`, and the `suppressed` and `suppressions` arrays
+  (additive, inline suppressions).
 
 When the contract changes, update this table and
 [`report.schema.json`](report.schema.json) together.

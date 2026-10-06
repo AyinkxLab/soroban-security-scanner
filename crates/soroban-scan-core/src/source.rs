@@ -148,6 +148,8 @@ pub struct ParsedSource {
     pub functions: Vec<FunctionSummary>,
     /// Locations of contract definitions, formatted as `path:line`.
     pub contract_definitions: Vec<String>,
+    /// Inline suppression directives detected in the file.
+    pub suppressions: Vec<crate::suppression::Suppression>,
 }
 
 impl ParsedSource {
@@ -715,6 +717,7 @@ pub fn parse_source(path: &Path, crate_root: &Path, content: &str) -> ParsedSour
             items: Vec::new(),
             functions: Vec::new(),
             contract_definitions: Vec::new(),
+            suppressions: Vec::new(),
         };
     }
 
@@ -732,6 +735,7 @@ pub fn parse_source(path: &Path, crate_root: &Path, content: &str) -> ParsedSour
                 &mut functions,
                 &mut contract_definitions,
             );
+            let suppressions = crate::suppression::detect(content, path, &item_spans(&file));
             ParsedSource {
                 path: path.to_path_buf(),
                 module_path,
@@ -740,6 +744,7 @@ pub fn parse_source(path: &Path, crate_root: &Path, content: &str) -> ParsedSour
                 items,
                 functions,
                 contract_definitions,
+                suppressions,
             }
         }
         Err(err) => ParsedSource {
@@ -750,7 +755,50 @@ pub fn parse_source(path: &Path, crate_root: &Path, content: &str) -> ParsedSour
             items: Vec::new(),
             functions: Vec::new(),
             contract_definitions: Vec::new(),
+            suppressions: Vec::new(),
         },
+    }
+}
+
+/// Returns the `(first_line, last_line)` bounds of every item in a file.
+///
+/// Used to widen an inline suppression directive to the item it is anchored to.
+/// Spans are taken from the syntax tree so they cover the whole item, including
+/// the body of a function and the attributes above it.
+fn item_spans(file: &syn::File) -> Vec<(usize, usize)> {
+    let mut spans = Vec::new();
+    collect_item_spans(&file.items, &mut spans);
+    spans.sort_unstable();
+    spans.dedup();
+    spans
+}
+
+/// Collects item spans, descending into modules, `impl` blocks, and traits.
+fn collect_item_spans(items: &[syn::Item], out: &mut Vec<(usize, usize)>) {
+    for item in items {
+        out.push((span_start(item).0, span_end_line(item)));
+        match item {
+            syn::Item::Impl(imp) => {
+                for impl_item in &imp.items {
+                    if let syn::ImplItem::Fn(f) = impl_item {
+                        out.push((span_start(f).0, span_end_line(f)));
+                    }
+                }
+            }
+            syn::Item::Trait(tr) => {
+                for trait_item in &tr.items {
+                    if let syn::TraitItem::Fn(f) = trait_item {
+                        out.push((span_start(f).0, span_end_line(f)));
+                    }
+                }
+            }
+            syn::Item::Mod(m) => {
+                if let Some((_, sub_items)) = &m.content {
+                    collect_item_spans(sub_items, out);
+                }
+            }
+            _ => {}
+        }
     }
 }
 
@@ -871,6 +919,27 @@ mod tests {
         assert_eq!(s.functions[0].line, 1);
         assert_eq!(s.functions[1].name, "b");
         assert_eq!(s.functions[1].line, 3);
+    }
+
+    #[test]
+    fn suppressions_cover_whole_function_items() {
+        let src = concat!(
+            "struct Vault;\n",
+            "impl Vault {\n",
+            "    // soroban-scan: ignore SS-001 -- reviewed\n",
+            "    pub fn f(&self) {\n",
+            "        let x = 1;\n",
+            "    }\n",
+            "}\n",
+        );
+        let s = parse(src);
+        assert_eq!(s.suppressions.len(), 1);
+        let suppression = &s.suppressions[0];
+        assert_eq!(suppression.line, 3);
+        assert_eq!((suppression.start_line, suppression.end_line), (4, 6));
+        assert!(suppression.applies_to("src/lib.rs", 5, "SS-001"));
+        assert!(!suppression.applies_to("src/lib.rs", 7, "SS-001"));
+        assert!(!suppression.applies_to("src/lib.rs", 5, "SS-002"));
     }
 
     #[test]

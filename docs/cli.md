@@ -46,6 +46,14 @@ soroban-scan scan [PATH] [OPTIONS]
 | `--quiet`, `-q` | Compact output; suppresses the header. |
 | `--verbose`, `-v` | Include diagnostics. |
 
+### Inline suppressions
+
+Source comments of the form `// soroban-scan: ignore SS-XXX -- reason`
+suppress a single finding at that location. Suppressed findings are excluded
+from the `--fail-on` gate but never dropped from the report: terminal, JSON,
+SARIF and Markdown output all list them together with the directive that
+suppressed them. See [Inline Suppressions](suppressions.md).
+
 ### Examples
 
 ```bash

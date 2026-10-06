@@ -316,3 +316,134 @@ fn files_from_rejects_path_traversal() {
 
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// Writes a minimal Soroban project whose single entry point lacks
+/// authorization. With `directive` set, an inline suppression comment sits above
+/// the entry point.
+fn write_suppression_project(dir: &std::path::Path, directive: bool) {
+    let _ = std::fs::remove_dir_all(dir);
+    std::fs::create_dir_all(dir.join("src")).unwrap();
+    std::fs::write(
+        dir.join("Cargo.toml"),
+        "[package]\nname = \"vault\"\nversion = \"0.1.0\"\n\n[dependencies]\nsoroban-sdk = \"21.0.0\"\n",
+    )
+    .unwrap();
+
+    let mut src = String::new();
+    src.push_str("use soroban_sdk::{contractimpl, symbol_short, Address, Env};\n\n");
+    src.push_str("#[contractimpl]\n");
+    src.push_str("impl Vault {\n");
+    if directive {
+        src.push_str("    // soroban-scan: ignore SS-001 -- reviewed by the security team\n");
+    }
+    src.push_str("    pub fn set_admin(env: Env, new_admin: Address) {\n");
+    src.push_str(
+        "        env.storage().persistent().set(&symbol_short!(\"ADMIN\"), &new_admin);\n",
+    );
+    src.push_str("    }\n");
+    src.push_str("}\n");
+    std::fs::write(dir.join("src/lib.rs"), src).unwrap();
+}
+
+fn rule_ids(value: &serde_json::Value) -> Vec<String> {
+    value
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|finding| finding["rule_id"].as_str().unwrap().to_string())
+        .collect()
+}
+
+#[test]
+fn inline_suppressions_are_applied_and_reported() {
+    let dir = std::env::temp_dir().join(format!(
+        "soroban-scan-cli-suppression-{}",
+        std::process::id()
+    ));
+
+    // Without a directive the finding is reported and fails the gate.
+    write_suppression_project(&dir, false);
+    let plain = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--format",
+        "json",
+        "--rule",
+        "SS-001",
+        "--fail-on",
+        "high",
+    ]);
+    assert_eq!(plain.code, 1, "an unsuppressed SS-001 must fail the gate");
+    let value: serde_json::Value = serde_json::from_str(&plain.stdout).unwrap();
+    assert!(rule_ids(&value["findings"]).contains(&"SS-001".to_string()));
+    assert_eq!(value["stats"]["findings_suppressed"], 0);
+
+    // With the directive the finding leaves the gate but is still reported.
+    write_suppression_project(&dir, true);
+    let suppressed = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--format",
+        "json",
+        "--rule",
+        "SS-001",
+        "--fail-on",
+        "high",
+    ]);
+    assert_eq!(
+        suppressed.code, 0,
+        "suppressed findings must not fail the gate: {}",
+        suppressed.stdout
+    );
+    let value: serde_json::Value = serde_json::from_str(&suppressed.stdout).unwrap();
+    assert_eq!(value["stats"]["suppressions_detected"], 1);
+    assert_eq!(value["stats"]["findings_suppressed"], 1);
+    assert!(!rule_ids(&value["findings"]).contains(&"SS-001".to_string()));
+    assert_eq!(value["suppressed"][0]["rule_id"], "SS-001");
+    assert_eq!(value["suppressed"][0]["suppression"]["file"], "src/lib.rs");
+    assert_eq!(value["suppressed"][0]["suppression"]["rules"], "SS-001");
+    assert_eq!(
+        value["suppressed"][0]["suppression"]["reason"],
+        "reviewed by the security team"
+    );
+    assert_eq!(value["suppressions"][0]["applied"], true);
+
+    // The terminal report surfaces the count, the directive and the reason.
+    let terminal = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--rule",
+        "SS-001",
+        "--fail-on",
+        "high",
+    ]);
+    assert_eq!(terminal.code, 0);
+    assert!(
+        terminal.stdout.contains("1 suppressed finding(s)"),
+        "{}",
+        terminal.stdout
+    );
+    assert!(terminal.stdout.contains("reviewed by the security team"));
+
+    // SARIF keeps the result and marks it as an in-source suppression.
+    let sarif = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--format",
+        "sarif",
+        "--rule",
+        "SS-001",
+        "--fail-on",
+        "high",
+    ]);
+    let value: serde_json::Value = serde_json::from_str(&sarif.stdout).unwrap();
+    let results = value["runs"][0]["results"].as_array().unwrap();
+    let marked = results
+        .iter()
+        .find(|result| result["ruleId"] == "SS-001")
+        .expect("SS-001 result stays in SARIF");
+    assert_eq!(marked["suppressions"][0]["kind"], "inSource");
+    assert_eq!(marked["suppressions"][0]["status"], "accepted");
+
+    let _ = std::fs::remove_dir_all(&dir);
+}

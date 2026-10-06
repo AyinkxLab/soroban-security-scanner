@@ -5,7 +5,7 @@
 
 use serde::Serialize;
 
-use crate::engine::ScanOutcome;
+use crate::engine::{ScanOutcome, SuppressedFinding, SuppressionInfo};
 use crate::finding::Finding;
 use crate::model::Diagnostic;
 use crate::registry::RuleRegistry;
@@ -74,6 +74,12 @@ pub fn render(outcome: &ScanOutcome, registry: &RuleRegistry, format: OutputForm
     }
 }
 
+/// Renders a suppression file label with the platform path separator, so
+/// terminal and Markdown output match the way finding locations are displayed.
+fn display_suppression_file(file: &str) -> String {
+    file.replace('/', std::path::MAIN_SEPARATOR_STR)
+}
+
 fn severity_counts(findings: &[Finding]) -> [usize; 5] {
     let mut counts = [0usize; 5];
     for finding in findings {
@@ -106,8 +112,11 @@ pub fn render_terminal(outcome: &ScanOutcome) -> String {
         outcome.project.kind
     ));
     out.push_str(&format!(
-        "Files: {}  Rules run: {}  Skipped: {}\n\n",
-        outcome.stats.files_analyzed, outcome.stats.rules_run, outcome.stats.rules_skipped
+        "Files: {}  Rules run: {}  Skipped: {}  Suppressions: {}\n\n",
+        outcome.stats.files_analyzed,
+        outcome.stats.rules_run,
+        outcome.stats.rules_skipped,
+        outcome.stats.suppressions_detected
     ));
 
     if outcome.findings.is_empty() {
@@ -127,6 +136,34 @@ pub fn render_terminal(outcome: &ScanOutcome) -> String {
         }
         out.push_str(&summary_line(&outcome.findings));
         out.push('\n');
+    }
+    if !outcome.suppressed.is_empty() {
+        out.push_str(&format!(
+            "\n{} suppressed finding(s):\n",
+            outcome.suppressed.len()
+        ));
+        for suppressed in &outcome.suppressed {
+            out.push_str(&format!(
+                "  {:<8} {:<7} {}\n",
+                suppressed.finding.severity.as_str().to_ascii_uppercase(),
+                suppressed.finding.rule_id,
+                suppressed.finding.location.display_label()
+            ));
+            out.push_str(&format!(
+                "           suppressed by {}:{} (`ignore {}`)\n",
+                display_suppression_file(&suppressed.suppression.file),
+                suppressed.suppression.line,
+                suppressed.suppression.rules
+            ));
+            out.push_str(&format!(
+                "           reason: {}\n",
+                suppressed
+                    .suppression
+                    .reason
+                    .as_deref()
+                    .unwrap_or("(none given)")
+            ));
+        }
     }
 
     if !outcome.diagnostics.is_empty() {
@@ -151,6 +188,12 @@ pub fn render_terminal_compact(outcome: &ScanOutcome) -> String {
         ));
     }
     out.push_str(&summary_line(&outcome.findings));
+    if outcome.stats.findings_suppressed > 0 {
+        out.push_str(&format!(
+            " — {} suppressed",
+            outcome.stats.findings_suppressed
+        ));
+    }
     out.push('\n');
     out
 }
@@ -163,6 +206,8 @@ struct JsonReport<'a> {
     project: ProjectSummary,
     stats: StatsSummary,
     findings: &'a [Finding],
+    suppressed: &'a [SuppressedFinding],
+    suppressions: Vec<SuppressionJson>,
     diagnostics: &'a [Diagnostic],
 }
 
@@ -191,8 +236,49 @@ struct StatsSummary {
     rules_skipped: usize,
     findings_raw: usize,
     findings_rejected: usize,
+    suppressions_detected: usize,
+    findings_suppressed: usize,
 }
 
+/// A detected suppression directive in JSON reports.
+#[derive(Debug, Serialize)]
+struct SuppressionJson {
+    file: String,
+    line: usize,
+    rules: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reason: Option<String>,
+    start_line: usize,
+    end_line: usize,
+    /// True when the directive suppressed at least one finding.
+    applied: bool,
+}
+
+/// Collects the detected suppression directives for the JSON report.
+///
+/// Directives that suppressed nothing are included too, so suppression usage
+/// stays auditable.
+fn suppression_reports(outcome: &ScanOutcome) -> Vec<SuppressionJson> {
+    outcome
+        .suppressions
+        .iter()
+        .map(|suppression| {
+            let file = suppression.file_label();
+            let applied = outcome.suppressed.iter().any(|item| {
+                item.suppression.file == file && item.suppression.line == suppression.line
+            });
+            SuppressionJson {
+                file,
+                line: suppression.line,
+                rules: suppression.targets.label(),
+                reason: suppression.reason.clone(),
+                start_line: suppression.start_line,
+                end_line: suppression.end_line,
+                applied,
+            }
+        })
+        .collect()
+}
 /// Renders the JSON report.
 pub fn render_json(outcome: &ScanOutcome) -> Result<String, serde_json::Error> {
     let report = JsonReport {
@@ -214,8 +300,12 @@ pub fn render_json(outcome: &ScanOutcome) -> Result<String, serde_json::Error> {
             rules_skipped: outcome.stats.rules_skipped,
             findings_raw: outcome.stats.findings_raw,
             findings_rejected: outcome.stats.findings_rejected,
+            suppressions_detected: outcome.stats.suppressions_detected,
+            findings_suppressed: outcome.stats.findings_suppressed,
         },
         findings: &outcome.findings,
+        suppressed: &outcome.suppressed,
+        suppressions: suppression_reports(outcome),
         diagnostics: &outcome.diagnostics,
     };
     serde_json::to_string_pretty(&report)
@@ -227,6 +317,62 @@ fn sarif_level(severity: Severity) -> &'static str {
         Severity::Medium => "warning",
         Severity::Low | Severity::Info => "note",
     }
+}
+
+/// Builds one SARIF result.
+///
+/// When `suppression` is set, the result is marked as an in-source
+/// suppression (SARIF 2.1.0) instead of being dropped from the report.
+fn sarif_result(finding: &Finding, suppression: Option<&SuppressionInfo>) -> serde_json::Value {
+    use serde_json::json;
+
+    let mut region = json!({ "startLine": finding.location.line });
+    if let Some(column) = finding.location.column {
+        region["startColumn"] = json!(column);
+    }
+    if let Some(end_line) = finding.location.end_line {
+        region["endLine"] = json!(end_line);
+    }
+    let mut result = json!({
+        "ruleId": finding.rule_id,
+        "level": sarif_level(finding.severity),
+        "message": { "text": format!("{} — {}", finding.title, finding.evidence) },
+        "locations": [{
+            "physicalLocation": {
+                "artifactLocation": {
+                    "uri": finding.location.file.to_string_lossy().replace('\\', "/")
+                },
+                "region": region
+            }
+        }],
+        "partialFingerprints": {
+            "sorobanScanFingerprint": finding.fingerprint
+        },
+        "properties": {
+            "severity": finding.severity.as_str(),
+            "confidence": finding.confidence.as_str(),
+            "category": finding.category.as_str(),
+            "remediation": finding.remediation
+        }
+    });
+
+    if let Some(suppression) = suppression {
+        let justification = suppression
+            .reason
+            .clone()
+            .unwrap_or_else(|| "inline soroban-scan suppression".to_string());
+        result["suppressions"] = json!([{
+            "kind": "inSource",
+            "status": "accepted",
+            "justification": justification,
+        }]);
+        result["properties"]["suppressed"] = json!(true);
+        result["properties"]["suppressedBy"] =
+            json!(format!("{}:{}", suppression.file, suppression.line));
+        result["properties"]["suppressedRules"] = json!(suppression.rules);
+    }
+
+    result
 }
 
 /// Renders the SARIF 2.1.0 report.
@@ -253,41 +399,20 @@ pub fn render_sarif(outcome: &ScanOutcome, registry: &RuleRegistry) -> String {
         })
         .collect();
 
-    let results: Vec<Value> = outcome
+    let mut results: Vec<Value> = outcome
         .findings
         .iter()
-        .map(|finding| {
-            let mut region = json!({ "startLine": finding.location.line });
-            if let Some(column) = finding.location.column {
-                region["startColumn"] = json!(column);
-            }
-            if let Some(end_line) = finding.location.end_line {
-                region["endLine"] = json!(end_line);
-            }
-            json!({
-                "ruleId": finding.rule_id,
-                "level": sarif_level(finding.severity),
-                "message": { "text": format!("{} — {}", finding.title, finding.evidence) },
-                "locations": [{
-                    "physicalLocation": {
-                        "artifactLocation": {
-                            "uri": finding.location.file.to_string_lossy().replace('\\', "/")
-                        },
-                        "region": region
-                    }
-                }],
-                "partialFingerprints": {
-                    "sorobanScanFingerprint": finding.fingerprint
-                },
-                "properties": {
-                    "severity": finding.severity.as_str(),
-                    "confidence": finding.confidence.as_str(),
-                    "category": finding.category.as_str(),
-                    "remediation": finding.remediation
-                }
-            })
-        })
+        .map(|finding| sarif_result(finding, None))
         .collect();
+
+    // Suppressed findings are never dropped: they stay in the SARIF results and
+    // are marked as in-source suppressions (SARIF 2.1.0 `suppressions`).
+    results.extend(
+        outcome
+            .suppressed
+            .iter()
+            .map(|suppressed| sarif_result(&suppressed.finding, Some(&suppressed.suppression))),
+    );
 
     let document = json!({
         "$schema": SARIF_SCHEMA,
@@ -324,6 +449,10 @@ pub fn render_markdown(outcome: &ScanOutcome) -> String {
         outcome.stats.files_analyzed
     ));
     out.push_str(&format!("- **Findings:** {}\n\n", outcome.findings.len()));
+    out.push_str(&format!(
+        "- **Suppressed (excluded from the gate):** {}\n\n",
+        outcome.stats.findings_suppressed
+    ));
 
     out.push_str("## Summary\n\n");
     out.push_str("| Severity | Count |\n| -------- | ----- |\n");
@@ -344,6 +473,7 @@ pub fn render_markdown(outcome: &ScanOutcome) -> String {
 
     if outcome.findings.is_empty() {
         out.push_str("No security findings.\n");
+        append_markdown_suppressed(outcome, &mut out);
         return out;
     }
 
@@ -367,7 +497,39 @@ pub fn render_markdown(outcome: &ScanOutcome) -> String {
         }
         out.push('\n');
     }
+    append_markdown_suppressed(outcome, &mut out);
     out
+}
+
+/// Appends the suppressed-findings section to a Markdown report.
+///
+/// Suppressed findings are excluded from the gate but never dropped from the
+/// report.
+fn append_markdown_suppressed(outcome: &ScanOutcome, out: &mut String) {
+    if outcome.suppressed.is_empty() {
+        return;
+    }
+    out.push_str("\n## Suppressed findings\n\n");
+    out.push_str("Suppressed findings are excluded from the gate and always reported:\n\n");
+    for suppressed in &outcome.suppressed {
+        out.push_str(&format!(
+            "- **{}** `{}` at `{}` — suppressed by `{}:{}` (`ignore {}`)\n",
+            suppressed.finding.rule_id,
+            suppressed.finding.title,
+            suppressed.finding.location.display_label(),
+            display_suppression_file(&suppressed.suppression.file),
+            suppressed.suppression.line,
+            suppressed.suppression.rules
+        ));
+        out.push_str(&format!(
+            "  - Reason: {}\n",
+            suppressed
+                .suppression
+                .reason
+                .as_deref()
+                .unwrap_or("(none given)")
+        ));
+    }
 }
 
 /// Renders the rule catalog for `soroban-scan rules`.
@@ -545,5 +707,135 @@ mod tests {
         assert_eq!(OutputFormat::parse("SARIF").unwrap(), OutputFormat::Sarif);
         assert_eq!(OutputFormat::parse("md").unwrap(), OutputFormat::Markdown);
         assert!(OutputFormat::parse("xml").is_err());
+    }
+    struct FixedLineRule {
+        meta: crate::rule::RuleMetadata,
+        line: usize,
+    }
+
+    impl crate::rule::Rule for FixedLineRule {
+        fn metadata(&self) -> &crate::rule::RuleMetadata {
+            &self.meta
+        }
+
+        fn analyze(&self, ctx: &crate::context::AnalysisContext<'_>, out: &mut Vec<Finding>) {
+            if let Some(source) = ctx.sources().first() {
+                let location =
+                    crate::finding::SourceLocation::new(ctx.relative_path(&source.path), self.line);
+                out.push(Finding::new(&self.meta, location, "fixture evidence"));
+            }
+        }
+    }
+
+    /// A sample whose only finding is suppressed by an inline directive.
+    fn suppressed_sample() -> (ScanOutcome, RuleRegistry) {
+        let src = "// soroban-scan: ignore SS-001 -- reviewed by the security team\nfn a() {}\n";
+        let mut registry = RuleRegistry::new();
+        let meta = crate::rule::RuleMetadata::new(
+            "SS-001",
+            "Suppressed rule",
+            "fixture rule",
+            crate::category::Category::Authorization,
+            Severity::High,
+            crate::confidence::Confidence::High,
+            "fix it",
+        );
+        registry
+            .register(Box::new(FixedLineRule { meta, line: 2 }))
+            .unwrap();
+        let outcome = engine::scan_source_str(src, "src/lib.rs", &ScanConfig::default(), &registry);
+        (outcome, registry)
+    }
+
+    #[test]
+    fn terminal_report_surfaces_suppressed_findings() {
+        let (outcome, _) = suppressed_sample();
+        let text = render_terminal(&outcome);
+        assert!(text.contains("Suppressions: 1"));
+        assert!(text.contains("1 suppressed finding(s)"));
+        assert!(text.contains("reviewed by the security team"));
+        assert!(text.contains("No security findings."));
+    }
+
+    #[test]
+    fn compact_report_surfaces_the_suppressed_count() {
+        let (outcome, _) = suppressed_sample();
+        let text = render_terminal_compact(&outcome);
+        assert!(text.contains("1 suppressed"), "got: {text}");
+    }
+
+    #[test]
+    fn json_report_exposes_suppressed_findings_and_counts() {
+        let (outcome, _) = suppressed_sample();
+        let text = render_json(&outcome).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&text).unwrap();
+        assert_eq!(value["stats"]["suppressions_detected"], 1);
+        assert_eq!(value["stats"]["findings_suppressed"], 1);
+        assert!(value["findings"].as_array().unwrap().is_empty());
+        assert_eq!(value["suppressed"][0]["rule_id"], "SS-001");
+        assert_eq!(value["suppressed"][0]["location"]["line"], 2);
+        assert_eq!(value["suppressed"][0]["suppression"]["file"], "src/lib.rs");
+        assert_eq!(value["suppressed"][0]["suppression"]["line"], 1);
+        assert_eq!(value["suppressed"][0]["suppression"]["rules"], "SS-001");
+        assert_eq!(
+            value["suppressed"][0]["suppression"]["reason"],
+            "reviewed by the security team"
+        );
+        assert_eq!(value["suppressions"][0]["applied"], true);
+        assert_eq!(value["suppressions"][0]["rules"], "SS-001");
+    }
+
+    #[test]
+    fn json_report_lists_unapplied_suppressions() {
+        let src = "// soroban-scan: ignore SS-002\nfn a() {}\n";
+        let mut registry = RuleRegistry::new();
+        let meta = crate::rule::RuleMetadata::new(
+            "SS-001",
+            "Rule",
+            "fixture rule",
+            crate::category::Category::Authorization,
+            Severity::High,
+            crate::confidence::Confidence::High,
+            "fix it",
+        );
+        registry
+            .register(Box::new(FixedLineRule { meta, line: 2 }))
+            .unwrap();
+        let outcome = engine::scan_source_str(src, "src/lib.rs", &ScanConfig::default(), &registry);
+        let value: serde_json::Value =
+            serde_json::from_str(&render_json(&outcome).unwrap()).unwrap();
+        assert_eq!(value["stats"]["findings_suppressed"], 0);
+        assert_eq!(value["suppressions"][0]["applied"], false);
+        assert_eq!(value["findings"].as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn sarif_report_marks_suppressions() {
+        let (outcome, registry) = suppressed_sample();
+        let text = render_sarif(&outcome, &registry);
+        let value: serde_json::Value = serde_json::from_str(&text).unwrap();
+        let results = value["runs"][0]["results"].as_array().unwrap();
+        assert_eq!(
+            results.len(),
+            1,
+            "suppressed results stay in the SARIF report"
+        );
+        assert_eq!(results[0]["ruleId"], "SS-001");
+        assert_eq!(results[0]["suppressions"][0]["kind"], "inSource");
+        assert_eq!(results[0]["suppressions"][0]["status"], "accepted");
+        assert_eq!(
+            results[0]["suppressions"][0]["justification"],
+            "reviewed by the security team"
+        );
+        assert_eq!(results[0]["properties"]["suppressed"], true);
+        assert_eq!(results[0]["properties"]["suppressedBy"], "src/lib.rs:1");
+    }
+
+    #[test]
+    fn markdown_report_lists_suppressed_findings() {
+        let (outcome, _) = suppressed_sample();
+        let text = render_markdown(&outcome);
+        assert!(text.contains("## Suppressed findings"));
+        assert!(text.contains("reviewed by the security team"));
     }
 }
