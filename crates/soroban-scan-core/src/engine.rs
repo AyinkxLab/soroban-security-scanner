@@ -8,6 +8,8 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
+use serde::Serialize;
+
 use crate::config::ScanConfig;
 use crate::context::AnalysisContext;
 use crate::error::ScanError;
@@ -15,6 +17,7 @@ use crate::finding::Finding;
 use crate::model::{Diagnostic, Project};
 use crate::project::{self, LoadedProject};
 use crate::registry::RuleRegistry;
+use crate::suppression::Suppression;
 
 /// Statistics about a scan.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -29,6 +32,10 @@ pub struct ScanStats {
     pub findings_raw: usize,
     /// Findings dropped because they referenced an unknown file.
     pub findings_rejected: usize,
+    /// Inline suppression directives detected in the analyzed sources.
+    pub suppressions_detected: usize,
+    /// Findings excluded from the gate by an inline suppression directive.
+    pub findings_suppressed: usize,
 }
 
 /// The full result of a scan.
@@ -37,11 +44,48 @@ pub struct ScanOutcome {
     /// Project metadata.
     pub project: Project,
     /// Final findings, sorted and de-duplicated.
+    ///
+    /// Findings suppressed by an inline directive are **not** included here;
+    /// they are reported in [`ScanOutcome::suppressed`] instead.
     pub findings: Vec<Finding>,
     /// Diagnostics (project + pipeline).
     pub diagnostics: Vec<Diagnostic>,
     /// Scan statistics.
     pub stats: ScanStats,
+    /// Inline suppression directives detected during the scan.
+    ///
+    /// Every detected directive is listed, including directives that matched no
+    /// finding, so suppression usage stays auditable.
+    pub suppressions: Vec<Suppression>,
+    /// Findings excluded from the gate by an inline suppression directive.
+    pub suppressed: Vec<SuppressedFinding>,
+}
+
+/// The directive that suppressed a finding, as reported for auditability.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SuppressionInfo {
+    /// Root-relative, forward-slash path of the file containing the directive.
+    pub file: String,
+    /// 1-based line of the directive comment.
+    pub line: usize,
+    /// Rule targets of the directive (for example `SS-001,SS-002`, or `all`).
+    pub rules: String,
+    /// Reason supplied by the directive, when present.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+/// A finding excluded from the gate by an inline suppression directive.
+///
+/// Suppressed findings are still reported — with the directive and the reason
+/// that suppressed them — so a suppression can never hide a finding silently.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SuppressedFinding {
+    /// The suppressed finding, serialized inline.
+    #[serde(flatten)]
+    pub finding: Finding,
+    /// Directive that suppressed the finding.
+    pub suppression: SuppressionInfo,
 }
 
 /// Normalizes a relative path to forward slashes without a leading `./`.
@@ -151,11 +195,52 @@ pub fn scan(loaded: &LoadedProject, registry: &RuleRegistry, config: &ScanConfig
     let mut seen = BTreeSet::new();
     findings.retain(|f| seen.insert(f.identity()));
 
+    // Apply inline suppression directives. Suppressed findings leave the gate
+    // but are always reported with the directive and reason that removed them.
+    let suppressions: Vec<Suppression> = loaded
+        .sources
+        .iter()
+        .flat_map(|source| {
+            let relative = ctx.relative_path(&source.path);
+            source
+                .suppressions
+                .iter()
+                .cloned()
+                .map(move |suppression| suppression.with_file(relative.clone()))
+        })
+        .collect();
+
+    let mut suppressed: Vec<SuppressedFinding> = Vec::new();
+    findings.retain(|finding| {
+        let file = normalize_rel(&finding.location.file);
+        if let Some(suppression) = suppressions
+            .iter()
+            .find(|s| s.applies_to(&file, finding.location.line, &finding.rule_id))
+        {
+            suppressed.push(SuppressedFinding {
+                finding: finding.clone(),
+                suppression: SuppressionInfo {
+                    file: suppression.file_label(),
+                    line: suppression.line,
+                    rules: suppression.targets.label(),
+                    reason: suppression.reason.clone(),
+                },
+            });
+            return false;
+        }
+        true
+    });
+
+    stats.suppressions_detected = suppressions.len();
+    stats.findings_suppressed = suppressed.len();
+
     ScanOutcome {
         project: loaded.project.clone(),
         findings,
         diagnostics,
         stats,
+        suppressions,
+        suppressed,
     }
 }
 
@@ -404,6 +489,138 @@ mod tests {
             serde_json::to_string(&a.findings).unwrap(),
             serde_json::to_string(&b.findings).unwrap()
         );
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    struct LocatedRule {
+        meta: RuleMetadata,
+        line: usize,
+    }
+
+    impl LocatedRule {
+        fn new(severity: Severity, line: usize) -> Self {
+            LocatedRule {
+                meta: RuleMetadata::new(
+                    "SS-001",
+                    "Located rule",
+                    "reports at a fixed line",
+                    Category::Authorization,
+                    severity,
+                    Confidence::Medium,
+                    "fix it",
+                ),
+                line,
+            }
+        }
+    }
+
+    impl Rule for LocatedRule {
+        fn metadata(&self) -> &RuleMetadata {
+            &self.meta
+        }
+        fn analyze(&self, ctx: &AnalysisContext<'_>, out: &mut Vec<Finding>) {
+            if let Some(source) = ctx.sources().first() {
+                let loc = SourceLocation::new(ctx.relative_path(&source.path), self.line);
+                out.push(Finding::new(&self.meta, loc, "located evidence"));
+            }
+        }
+    }
+
+    fn project_with_source(name: &str, src: &str) -> (PathBuf, LoadedProject) {
+        let root = tmpdir(name);
+        write(
+            &root.join("Cargo.toml"),
+            "[package]\nname = \"x\"\nversion = \"0.1.0\"\n[dependencies]\nsoroban-sdk = \"21.0.0\"\n",
+        );
+        write(&root.join("src/lib.rs"), src);
+        let loaded = project::load(&root, &ScanConfig::default().discovery_options()).unwrap();
+        (root, loaded)
+    }
+
+    fn located_registry(severity: Severity, line: usize) -> RuleRegistry {
+        let mut registry = RuleRegistry::new();
+        registry
+            .register(Box::new(LocatedRule::new(severity, line)))
+            .unwrap();
+        registry
+    }
+
+    #[test]
+    fn inline_suppression_excludes_the_finding_but_reports_it() {
+        let (root, loaded) = project_with_source(
+            "suppress",
+            "// soroban-scan: ignore SS-001 -- reviewed by security team\nfn a() {}\n",
+        );
+        let registry = located_registry(Severity::High, 2);
+        let outcome = scan(&loaded, &registry, &ScanConfig::default());
+
+        assert!(
+            outcome.findings.is_empty(),
+            "suppressed finding must not reach the gate"
+        );
+        assert_eq!(outcome.stats.findings_suppressed, 1);
+        assert_eq!(outcome.stats.suppressions_detected, 1);
+        assert_eq!(outcome.suppressed.len(), 1);
+        let suppressed = &outcome.suppressed[0];
+        assert_eq!(suppressed.finding.rule_id, "SS-001");
+        assert_eq!(suppressed.finding.location.line, 2);
+        assert_eq!(suppressed.suppression.line, 1);
+        assert_eq!(suppressed.suppression.rules, "SS-001");
+        assert_eq!(suppressed.suppression.file, "src/lib.rs");
+        assert_eq!(
+            suppressed.suppression.reason.as_deref(),
+            Some("reviewed by security team")
+        );
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn inline_suppression_for_another_rule_keeps_the_finding() {
+        let (root, loaded) = project_with_source(
+            "suppress-other",
+            "// soroban-scan: ignore SS-002\nfn a() {}\n",
+        );
+        let registry = located_registry(Severity::High, 2);
+        let outcome = scan(&loaded, &registry, &ScanConfig::default());
+
+        assert_eq!(outcome.findings.len(), 1);
+        assert!(outcome.suppressed.is_empty());
+        assert_eq!(outcome.stats.findings_suppressed, 0);
+        assert_eq!(outcome.stats.suppressions_detected, 1);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn inline_suppression_with_all_targets_is_reported_in_full() {
+        let (root, loaded) = project_with_source(
+            "suppress-all",
+            "// soroban-scan: ignore all -- generated code\nfn a() {}\n",
+        );
+        let registry = located_registry(Severity::High, 2);
+        let outcome = scan(&loaded, &registry, &ScanConfig::default());
+
+        assert!(outcome.findings.is_empty());
+        assert_eq!(outcome.suppressed.len(), 1);
+        assert_eq!(outcome.suppressed[0].suppression.rules, "all");
+        assert_eq!(
+            outcome.suppressed[0].suppression.reason.as_deref(),
+            Some("generated code")
+        );
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn directives_inside_string_literals_never_suppress() {
+        let (root, loaded) = project_with_source(
+            "suppress-string",
+            "fn a() {\n    let s = \"// soroban-scan: ignore SS-001\";\n}\n",
+        );
+        let registry = located_registry(Severity::High, 2);
+        let outcome = scan(&loaded, &registry, &ScanConfig::default());
+
+        assert_eq!(outcome.findings.len(), 1);
+        assert!(outcome.suppressed.is_empty());
+        assert_eq!(outcome.stats.suppressions_detected, 0);
         let _ = std::fs::remove_dir_all(&root);
     }
 }

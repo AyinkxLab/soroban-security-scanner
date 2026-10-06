@@ -49,11 +49,22 @@
         "rules_run": { "type": "integer", "minimum": 0 },
         "rules_skipped": { "type": "integer", "minimum": 0 },
         "findings_raw": { "type": "integer", "minimum": 0 },
-        "findings_rejected": { "type": "integer", "minimum": 0 }
+        "findings_rejected": { "type": "integer", "minimum": 0 },
+        "suppressions_detected": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Inline suppression directives detected in the analyzed sources."
+        },
+        "findings_suppressed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Findings excluded from the gate by an inline suppression directive."
+        }
       },
       "additionalProperties": true
     },
     "findings": {
+      "description": "Findings that reach the failure gate. Suppressed findings are reported in `suppressed` instead.",
       "type": "array",
       "items": {
         "type": "object",
@@ -96,6 +107,83 @@
           "remediation": { "type": "string" },
           "references": { "type": "array", "items": { "type": "string" } },
           "fingerprint": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "suppressed": {
+      "description": "Findings excluded from the gate by an inline suppression directive. Never silently dropped: each entry carries the finding plus the directive that suppressed it and, when given, the reason.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rule_id", "location", "suppression"],
+        "properties": {
+          "rule_id": { "type": "string", "pattern": "^SS-[0-9]{3}$" },
+          "title": { "type": "string" },
+          "severity": {
+            "type": "string",
+            "enum": ["info", "low", "medium", "high", "critical"]
+          },
+          "confidence": { "type": "string", "enum": ["low", "medium", "high"] },
+          "category": { "type": "string" },
+          "location": {
+            "type": "object",
+            "required": ["file", "line"],
+            "properties": {
+              "file": { "type": "string" },
+              "line": { "type": "integer", "minimum": 1 },
+              "column": { "type": "integer", "minimum": 1 },
+              "end_line": { "type": "integer", "minimum": 1 },
+              "end_column": { "type": "integer", "minimum": 1 }
+            },
+            "additionalProperties": true
+          },
+          "evidence": { "type": "string" },
+          "remediation": { "type": "string" },
+          "references": { "type": "array", "items": { "type": "string" } },
+          "fingerprint": { "type": "string" },
+          "suppression": {
+            "type": "object",
+            "required": ["file", "line", "rules"],
+            "properties": {
+              "file": {
+                "type": "string",
+                "description": "Root-relative path (forward slashes) of the file containing the directive."
+              },
+              "line": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "1-based line of the directive comment."
+              },
+              "rules": {
+                "type": "string",
+                "description": "Rule targets of the directive, for example `SS-001,SS-002` or `all`."
+              },
+              "reason": {
+                "type": "string",
+                "description": "Reason supplied by the directive, when present."
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "suppressions": {
+      "description": "Every inline suppression directive detected during the scan, including directives that matched no finding (`applied` is false), so suppression usage stays auditable.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "line", "rules", "start_line", "end_line", "applied"],
+        "properties": {
+          "file": { "type": "string" },
+          "line": { "type": "integer", "minimum": 1 },
+          "rules": { "type": "string" },
+          "reason": { "type": "string" },
+          "start_line": { "type": "integer", "minimum": 1 },
+          "end_line": { "type": "integer", "minimum": 1 },
+          "applied": { "type": "boolean" }
         },
         "additionalProperties": true
       }
