@@ -29,6 +29,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   removes false positives where authorization or TTL management happens in a
   same-file helper; it does not claim cross-file or whole-program analysis.
 
+### Fixed
+
+- Inline suppression detection is no longer confused by a character literal that
+  contains a quote (`let quote = '"';`). The quote is part of the literal instead
+  of opening a string that swallowed the rest of the file and silently dropped
+  every following directive.
+- Block comments are tracked with Rust's nesting rules, so a directive that is
+  still inside an outer comment (`/* /* */ // soroban-scan: ignore SS-001 */`) is
+  no longer honoured.
+
 ### Tests
 
 - Expanded the SS-001 and SS-002 negative corpus with argument-bound

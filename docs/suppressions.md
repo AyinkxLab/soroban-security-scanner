@@ -70,11 +70,17 @@ Detection is lexical and never executes the analyzed code. The following are
 **not** directives:
 
 - text inside string literals, byte strings, raw strings, or character literals;
-- text inside block comments that are not closed on the same line;
+- text inside block comments that are not closed on the same line, including a
+  directive that is still inside an outer comment because block comments nest,
+  as in `/* /* */ soroban-scan: ignore SS-001 */`;
 - comments that are not adjacent to code (more than three lines away);
 - malformed directives, for example `// soroban-scan: ignore`,
   `// soroban-scan: ignore SS-1`, or an unknown keyword such as
   `// soroban-scan: allow SS-001`.
+
+Character literals are recognized as literals, so a quote or an apostrophe that
+they contain never turns the following lines into string text: a directive after
+`let quote = '"';` is still found.
 
 ## Reporting
 
