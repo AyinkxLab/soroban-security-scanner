@@ -17,8 +17,11 @@
 //!
 //! Detection is purely lexical and never executes the analyzed code:
 //!
-//! * directives inside string literals, character literals, raw strings, or
-//!   block comments that are not on a single line are **not** recognized;
+//! * directives inside string literals, raw strings, character literals, or
+//!   block comments that are not closed on the current line are **not**
+//!   recognized; block comments nest, exactly as they do in Rust;
+//! * character literals such as `'"'` are recognized, so a quote inside a
+//!   literal cannot hide a directive further down the file;
 //! * a directive applies to the code line it is anchored to: the line it
 //!   trails, or the first code line below it, allowing at most
 //!   [`MAX_GAP_LINES`] intervening lines of blanks and non-directive comments;
@@ -209,16 +212,54 @@ fn raw_string_close(chars: &[char], from: usize, hashes: usize) -> Option<usize>
     None
 }
 
-/// Finds the index of the closing `*/` of a block comment in `chars`.
-fn block_comment_close(chars: &[char]) -> Option<usize> {
-    let mut index = 0usize;
+/// Finds the `*` of the `*/` that closes the block comment opened before
+/// `chars[from]`.
+///
+/// Rust nests block comments, so an inner `*/` does not end an outer comment.
+/// Ignoring that would let a directive that is still commented out be honoured.
+fn block_comment_end(chars: &[char], from: usize) -> Option<usize> {
+    let mut depth = 1usize;
+    let mut index = from;
     while index + 1 < chars.len() {
+        if chars[index] == '/' && chars[index + 1] == '*' {
+            depth += 1;
+            index += 2;
+            continue;
+        }
         if chars[index] == '*' && chars[index + 1] == '/' {
-            return Some(index);
+            depth -= 1;
+            if depth == 0 {
+                return Some(index);
+            }
+            index += 2;
+            continue;
         }
         index += 1;
     }
     None
+}
+
+/// Returns the index just past the character literal starting at `chars[start]`
+/// (a `'`), or `start + 1` when the quote does not open a character literal,
+/// for example the lifetime in `&'a str` or a label.
+///
+/// Character literals are short by construction (`'a'`, `'"'`, `'\''`,
+/// `'\u{22}'`), so a bounded scan is enough. Recognising them keeps a quote
+/// inside a literal such as `'"'` from opening a string that would swallow the
+/// rest of the file, hiding every later directive.
+fn char_literal_end(chars: &[char], start: usize) -> usize {
+    const MAX_CHAR_LITERAL_CHARS: usize = 12;
+    let limit = chars.len().min(start + 1 + MAX_CHAR_LITERAL_CHARS);
+    let mut index = start + 1;
+    while index < limit {
+        match chars[index] {
+            // The escaped character is part of the literal, not its terminator.
+            '\\' => index += 2,
+            '\'' => return index + 1,
+            _ => index += 1,
+        }
+    }
+    start + 1
 }
 
 /// Scans the raw text and returns per-line facts and comment texts.
@@ -226,11 +267,13 @@ fn block_comment_close(chars: &[char]) -> Option<usize> {
 /// The scanner is intentionally conservative: when a construct cannot be
 /// terminated on the current line (a block comment, a raw string, or a string
 /// literal) the remaining lines are treated as non-code until it terminates, so
-/// a directive inside a string is never treated as a directive.
+/// a directive inside a string is never treated as a directive. Character
+/// literals are recognized so that a quote inside a literal cannot put the
+/// scanner into string state by mistake.
 fn line_infos(source: &str) -> (Vec<LineInfo>, Vec<Option<String>>) {
     let mut infos = Vec::new();
     let mut comments = Vec::new();
-    let mut in_block_comment = false;
+    let mut block_depth = 0usize;
     let mut in_string = false;
     let mut raw_hashes: Option<usize> = None;
 
@@ -262,10 +305,16 @@ fn line_infos(source: &str) -> (Vec<LineInfo>, Vec<Option<String>>) {
                 index += 1;
                 continue;
             }
-            if in_block_comment {
+            if block_depth > 0 {
+                if is_char_boundary(&chars, index, '/') && is_char_boundary(&chars, index + 1, '*')
+                {
+                    block_depth += 1;
+                    index += 2;
+                    continue;
+                }
                 if is_char_boundary(&chars, index, '*') && is_char_boundary(&chars, index + 1, '/')
                 {
-                    in_block_comment = false;
+                    block_depth -= 1;
                     index += 2;
                     continue;
                 }
@@ -279,17 +328,20 @@ fn line_infos(source: &str) -> (Vec<LineInfo>, Vec<Option<String>>) {
                     break;
                 }
                 '/' if is_char_boundary(&chars, index + 1, '*') => {
-                    let body = &chars[index + 2..];
-                    match block_comment_close(body) {
+                    match block_comment_end(&chars, index + 2) {
                         Some(close) => {
-                            comment = Some(body[..close].iter().collect());
-                            index += 2 + close + 2;
+                            comment = Some(chars[index + 2..close].iter().collect());
+                            index = close + 2;
                         }
                         None => {
-                            in_block_comment = true;
+                            block_depth = 1;
                             index += 2;
                         }
                     }
+                }
+                '\'' => {
+                    has_code = true;
+                    index = char_literal_end(&chars, index);
                 }
                 '"' => {
                     has_code = true;
@@ -488,6 +540,56 @@ mod tests {
     fn multi_line_block_comments_are_not_directives() {
         let src = "/*\n// soroban-scan: ignore SS-001\n*/\nfn f() {}\n";
         assert!(detect_str(src, &[(4, 4)]).is_empty());
+    }
+
+    #[test]
+    fn directives_inside_nested_block_comments_are_ignored() {
+        // Rust nests block comments, so the inner `*/` leaves the outer comment
+        // open and the directive below it is still commented out.
+        let src = "/* /* */ // soroban-scan: ignore SS-001\n*/\nfn f() {}\n";
+        assert!(detect_str(src, &[(3, 3)]).is_empty());
+
+        let src = "/* a\n /* b */ // soroban-scan: ignore SS-001\n*/\nfn f() {}\n";
+        assert!(detect_str(src, &[(4, 4)]).is_empty());
+
+        let src = "fn f() {\n    /* note /* nested */ // soroban-scan: ignore SS-001 */\n    risky();\n}\n";
+        assert!(detect_str(src, &[(1, 4)]).is_empty());
+    }
+
+    #[test]
+    fn directive_after_a_nested_block_comment_closes_is_detected() {
+        let src =
+            "fn f() {\n    let _ = 1; /* a /* b */ c */\n    risky(); // soroban-scan: ignore SS-001\n}\n";
+        let found = detect_str(src, &[(1, 4)]);
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].line, 3);
+        assert_eq!((found[0].start_line, found[0].end_line), (3, 3));
+    }
+
+    #[test]
+    fn character_literals_do_not_hide_directives() {
+        // A quote inside a character literal must not open a string that
+        // swallows the rest of the file.
+        for src in [
+            "fn f() {\n    let quote = '\"';\n    // soroban-scan: ignore SS-001\n    risky();\n}\n",
+            "fn f() {\n    let quote = '\"'; let x = 1; // soroban-scan: ignore SS-001\n}\n",
+            "fn f() {\n    let quote = b'\"';\n    let x = 1; // soroban-scan: ignore SS-001\n}\n",
+            "fn f() {\n    let quote = '\\'';\n    let x = 1; // soroban-scan: ignore SS-001\n}\n",
+            "fn f() {\n    let quote = '\\u{22}';\n    let x = 1; // soroban-scan: ignore SS-001\n}\n",
+            "fn f<'a>(x: &'a str) {\n    let quote = '\"';\n    let x = 1; // soroban-scan: ignore SS-001\n}\n",
+        ] {
+            let found = detect_str(src, &[]);
+            assert_eq!(found.len(), 1, "directive missed in {src:?}");
+            assert_eq!(found[0].targets.label(), "SS-001", "in {src:?}");
+        }
+    }
+
+    #[test]
+    fn a_lone_apostrophe_does_not_start_a_string() {
+        let src = "// it's fine\nfn f() {\n    let x = 1; // soroban-scan: ignore SS-001\n}\n";
+        let found = detect_str(src, &[(2, 4)]);
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].targets.label(), "SS-001");
     }
 
     #[test]
