@@ -4,6 +4,11 @@ The scanner reads configuration from `soroban-scan.toml` in the scan root or the
 current directory, unless `--config` selects a specific file. Command-line
 options override the file.
 
+`--no-config` skips discovery entirely and runs with the built-in defaults. Use it
+when debugging, or when scanning an untrusted repository whose own
+`soroban-scan.toml` must not influence the scan. It is mutually exclusive
+with `--config`.
+
 Generate a starter file:
 
 ```bash
@@ -74,7 +79,8 @@ Unknown fields are rejected, as are references to unknown rule ids.
 ## Precedence
 
 1. Built-in defaults.
-2. Configuration file (`--config`, scan root, or current directory).
+2. Configuration file (`--config`, scan root, or current directory); skipped
+   entirely with `--no-config`.
 3. Command-line flags (`--min-severity`, `--min-confidence`, `--exclude`,
    `--disable`, `--rule`).
 

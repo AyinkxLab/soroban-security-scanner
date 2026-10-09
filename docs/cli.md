@@ -34,6 +34,7 @@ soroban-scan scan [PATH] [OPTIONS]
 | `--min-confidence <LEVEL>` | Only report findings at or above this confidence. |
 | `--exclude <GLOB>` | Exclude a glob relative to the scan root (repeatable). |
 | `--config <FILE>` | Use a specific configuration file. |
+| `--no-config` | Ignore discovered configuration and use built-in defaults (mutually exclusive with `--config`). |
 | `--files-from <FILE>` | Read a newline-separated list of files to scan (relative to `PATH`). |
 | `--disable <RULE>` | Disable a rule by id (repeatable). |
 | `--rule <RULE>` | Run only the given rule(s) (repeatable). |
@@ -122,8 +123,8 @@ configuration file and verifies that referenced rule ids exist.
 ## Configuration
 
 Configuration is discovered from `soroban-scan.toml` in the scan root or the
-current directory, unless `--config` is given. Command-line options override the
-file.
+current directory, unless `--config` is given or discovery is disabled with
+`--no-config`. Command-line options override the file.
 
 ```toml
 min_severity = "info"
