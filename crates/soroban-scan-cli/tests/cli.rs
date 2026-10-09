@@ -447,3 +447,63 @@ fn inline_suppressions_are_applied_and_reported() {
 
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn no_config_ignores_discovered_configuration() {
+    let dir = std::env::temp_dir().join(format!("soroban-scan-cli-noconf-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+
+    // A minimal project with an SS-001 finding plus a repository-provided
+    // configuration that would hide it.
+    write_suppression_project(&dir, false);
+    let repo_config = dir.join("soroban-scan.toml");
+    std::fs::write(&repo_config, "min_severity = \"critical\"\n").unwrap();
+
+    // The discovered configuration filters the high-severity finding out.
+    let discovered = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--format",
+        "json",
+        "--rule",
+        "SS-001",
+        "--fail-on",
+        "high",
+    ]);
+    assert_eq!(discovered.code, 0, "{}", discovered.stdout);
+    let value: serde_json::Value = serde_json::from_str(&discovered.stdout).unwrap();
+    assert!(
+        value["findings"].as_array().unwrap().is_empty(),
+        "the repository configuration must be applied by default: {}",
+        discovered.stdout
+    );
+
+    // --no-config ignores it: the finding is reported and fails the gate.
+    let ignored = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--no-config",
+        "--format",
+        "json",
+        "--rule",
+        "SS-001",
+        "--fail-on",
+        "high",
+    ]);
+    assert_eq!(ignored.code, 1, "{}", ignored.stdout);
+    let value: serde_json::Value = serde_json::from_str(&ignored.stdout).unwrap();
+    assert!(rule_ids(&value["findings"]).contains(&"SS-001".to_string()));
+
+    // It cannot be combined with --config.
+    let both = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--no-config",
+        "--config",
+        repo_config.to_str().unwrap(),
+    ]);
+    assert_eq!(both.code, 2, "{}", both.stderr);
+    assert!(both.stderr.contains("--no-config"));
+
+    let _ = std::fs::remove_dir_all(&dir);
+}

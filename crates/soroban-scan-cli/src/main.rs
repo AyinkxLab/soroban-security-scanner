@@ -171,6 +171,10 @@ struct ScanArgs {
     #[arg(long, value_name = "FILE")]
     config: Option<PathBuf>,
 
+    /// Ignore discovered configuration and run with built-in defaults.
+    #[arg(long, conflicts_with = "config")]
+    no_config: bool,
+
     /// Read a newline-separated list of files to scan, relative to PATH.
     #[arg(long, value_name = "FILE")]
     files_from: Option<PathBuf>,
@@ -338,7 +342,7 @@ fn run_scan(args: ScanArgs, registry: &RuleRegistry) -> CliResult<u8> {
         )));
     }
 
-    let mut config = load_config(args.config.as_deref(), &args.path)?;
+    let mut config = load_config(args.config.as_deref(), &args.path, !args.no_config)?;
 
     if let Some(severity) = args.min_severity {
         config.min_severity = severity;
@@ -550,14 +554,14 @@ fn run_init(args: InitArgs) -> CliResult<u8> {
 fn run_config(args: ConfigArgs) -> CliResult<u8> {
     match args.command {
         ConfigCommand::Show { config } => {
-            let effective = load_config(config.as_deref(), Path::new("."))?;
+            let effective = load_config(config.as_deref(), Path::new("."), true)?;
             let text = toml::to_string_pretty(&effective)
                 .map_err(|e| CliError::Runtime(format!("cannot serialize config: {e}")))?;
             print!("{text}");
             Ok(EXIT_SUCCESS)
         }
         ConfigCommand::Validate { config } => {
-            let effective = load_config(config.as_deref(), Path::new("."))?;
+            let effective = load_config(config.as_deref(), Path::new("."), true)?;
             let registry = RuleRegistry::with_default_rules();
             validate_rule_ids(&effective, &registry)?;
             println!(
@@ -569,11 +573,15 @@ fn run_config(args: ConfigArgs) -> CliResult<u8> {
     }
 }
 
-fn load_config(explicit: Option<&Path>, root: &Path) -> CliResult<ScanConfig> {
+fn load_config(explicit: Option<&Path>, root: &Path, discover: bool) -> CliResult<ScanConfig> {
     if let Some(path) = explicit {
         let text = std::fs::read_to_string(path)
             .map_err(|e| CliError::Runtime(format!("cannot read {}: {e}", path.display())))?;
         return ScanConfig::from_toml(&text).map_err(|e| CliError::Usage(e.to_string()));
+    }
+
+    if !discover {
+        return Ok(ScanConfig::default());
     }
 
     let candidates = [

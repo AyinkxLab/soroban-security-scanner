@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `--no-config` for `scan`: skip configuration discovery and run with the
+  built-in defaults. Useful when debugging, or when scanning an untrusted
+  repository that ships its own `soroban-scan.toml`. Mutually exclusive with
+  `--config`.
 - Inline suppression directives: `// soroban-scan: ignore SS-XXX -- reason`.
   The engine applies detected directives during the scan, keeps suppressed
   findings out of the `--fail-on` gate, and reports every suppressed finding
